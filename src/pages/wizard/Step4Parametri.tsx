@@ -21,7 +21,7 @@ export default function Step4Parametri({ onBack }: { onBack?: () => void }) {
         <OperatorRecipePanel result={data} />
       )}
 
-      {data && viewerUrl && <FillSimulationViewer viewerUrl={viewerUrl} durationMs={Math.max(1200, data.times?.injectionMs ?? 3000)} />}
+      {data && viewerUrl && <FillSimulationViewer viewerUrl={viewerUrl} durationMs={data.times?.injectionMs} />}
 
       <div className="flex justify-start mt-4">
         <button className="px-4 py-2 border rounded" onClick={() => onBack && onBack()}>Indietro</button>
