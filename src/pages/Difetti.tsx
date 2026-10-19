@@ -28,8 +28,11 @@ export default function DifettiPage() {
   const viewerUrl = useDrawingStore((s) => s.viewerUrl);
   const conversionStatus = useDrawingStore((s) => s.conversionStatus);
   const conversionMessage = useDrawingStore((s) => s.conversionMessage);
-  const drawingAnalysis = useDrawingStore((s) => ({ volumeCm3: s.volumeCm3, boundingBox: s.boundingBox, previewUrl: s.previewUrl, glbUrl: s.glbUrl }));
-  console.debug('MODEL IN DIFETTI', { viewerUrl, previewUrl: drawingAnalysis.previewUrl, glbUrl: drawingAnalysis.glbUrl, cadAnalysis: { volumeCm3: drawingAnalysis.volumeCm3, bbox: drawingAnalysis.boundingBox }, conversionStatus, conversionMessage });
+  const volumeCm3 = useDrawingStore((s) => s.volumeCm3);
+  const boundingBox = useDrawingStore((s) => s.boundingBox);
+  const previewUrl = useDrawingStore((s) => s.previewUrl);
+  const glbUrl = useDrawingStore((s) => s.glbUrl);
+  console.debug('MODEL IN DIFETTI', { viewerUrl, previewUrl, glbUrl, cadAnalysis: { volumeCm3, bbox: boundingBox }, conversionStatus, conversionMessage });
 
   // Parametri calcolati (read-only)
   const result = useParametriStore((s) => s.result);
@@ -47,7 +50,7 @@ export default function DifettiPage() {
     let cancelled = false;
     void inferKnowledgeRecommendations({
       input: {
-        volumeCm3: drawingAnalysis.volumeCm3,
+        volumeCm3,
         projectedAreaCm2: null,
         defectId: selectedDefectId,
         severity: selectedSeverity,
@@ -69,7 +72,7 @@ export default function DifettiPage() {
     });
 
     return () => { cancelled = true };
-  }, [drawingAnalysis.boundingBox, drawingAnalysis.volumeCm3, result, selectedDefectId, selectedSeverity]);
+  }, [boundingBox, volumeCm3, result, selectedDefectId, selectedSeverity]);
 
   // Normalizza gli id (defectPins usa underscore nella mappa)
   const normalizedId = selectedDefectId ? selectedDefectId.replace(/-/g, "_") : null;
