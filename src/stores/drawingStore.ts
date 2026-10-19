@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { InjectionGate } from '@/types/injectionGate'
 
 export type DrawingState = {
+  drawingId: string | null
   glbUrl: string | null
   viewerUrl: string | null
   volumeCm3: number | null
@@ -38,6 +39,7 @@ export type DrawingState = {
 }
 
 export const useDrawingStore = create<DrawingState>((set) => ({
+  drawingId: null,
   glbUrl: null,
   viewerUrl: null,
   volumeCm3: null,
@@ -83,11 +85,17 @@ export const useDrawingStore = create<DrawingState>((set) => ({
       }
       const hasViewerUrl = Object.prototype.hasOwnProperty.call(payload, 'viewerUrl')
       const hasGlbUrl = Object.prototype.hasOwnProperty.call(payload, 'glbUrl')
+      const hasDrawingId = Object.prototype.hasOwnProperty.call(payload, 'drawingId')
+      const drawingChanged = hasDrawingId && payload.drawingId !== s.drawingId
+      const hasMesh = Object.prototype.hasOwnProperty.call(payload, 'mesh')
       return {
         ...s,
         ...payload,
-        gates: nextGates,
-        selectedGateId: nextSelectedGateId,
+        gates: drawingChanged ? [] : nextGates,
+        selectedGateId: drawingChanged ? null : nextSelectedGateId,
+        gatePoint: drawingChanged ? null : hasGatePoint ? payload.gatePoint ?? null : s.gatePoint,
+        gateNormal: drawingChanged ? null : Object.prototype.hasOwnProperty.call(payload, 'gateNormal') ? payload.gateNormal ?? null : s.gateNormal,
+        mesh: drawingChanged ? null : hasMesh ? payload.mesh ?? null : s.mesh,
         viewerUrl: hasViewerUrl
           ? (payload.viewerUrl ?? null)
           : hasGlbUrl
@@ -137,6 +145,7 @@ export const useDrawingStore = create<DrawingState>((set) => ({
   setViewerUrl: (url: string | null) => set((s) => ({ ...s, viewerUrl: url })),
   reset() {
     set({
+      drawingId: null,
       glbUrl: null,
       viewerUrl: null,
       volumeCm3: null,

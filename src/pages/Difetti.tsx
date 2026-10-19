@@ -3,21 +3,35 @@ import { useDrawingStore } from "../stores/drawingStore";
 import { useParametriStore } from "../stores/parametriStore";
 import { useDefectsStore } from "../stores/defectsStore";
 import ThreeViewer from "../components/ThreeViewer";
-import { DEFECT_PINS } from "../data/defectPins";
 import { DEFECT_PAGE_CATALOG, resolveDefectIntegration } from "../defects/defectAdapter";
 import { inferKnowledgeRecommendations } from "../engine/knowledge/knowledgeEngine";
 import type { KnowledgeResult } from "../engine/knowledge/types";
+import { getContextualDefectProfile, type OperatorAnswer } from "../engine/knowledge/defectContext";
+import { buildDefectCaseId, buildDefectKnowledgeContext, levelToSeverity, severityToLevel, type DefectMeshPin } from "../defects/defectAssessment";
+
+const EMPTY_ANSWERS: Record<string, OperatorAnswer> = {};
 
 export default function DifettiPage() {
   // Stato UI (non scrive mai su store)
   const [selectedDefectId, setSelectedDefectId] = useState<string | null>(null);
+  const [answersByCase, setAnswersByCase] = useState<Record<string, Record<string, OperatorAnswer>>>({});
+  const [severityAfter, setSeverityAfter] = useState<string>('2');
+  const [interventionTried, setInterventionTried] = useState('');
+  const [placementMode, setPlacementMode] = useState(false);
+  const [selectedMeshPinId, setSelectedMeshPinId] = useState<string | null>(null);
 
   // Severity selection (store)
   const selectedSeverity = useDefectsStore((s) => s.selectedSeverity)
   const setSelectedSeverity = useDefectsStore((s) => s.setSelectedSeverity)
   const setSelectedDefectIdStore = useDefectsStore((s) => s.setSelectedDefectId)
+  const evaluations = useDefectsStore((s) => s.evaluations)
+  const recordEvaluation = useDefectsStore((s) => s.recordEvaluation)
+  const meshPins = useDefectsStore((s) => s.meshPins)
+  const addMeshPin = useDefectsStore((s) => s.addMeshPin)
+  const removeMeshPin = useDefectsStore((s) => s.removeMeshPin)
 
   // Dati dal disegno (read-only)
+  const drawingId = useDrawingStore((s) => s.drawingId);
   const viewerUrl = useDrawingStore((s) => s.viewerUrl);
   const conversionStatus = useDrawingStore((s) => s.conversionStatus);
   const conversionMessage = useDrawingStore((s) => s.conversionMessage);
@@ -34,53 +48,121 @@ export default function DifettiPage() {
   const lastDefectFix = useParametriStore((s) => s.lastDefectFix);
   const [knowledgeResult, setKnowledgeResult] = useState<KnowledgeResult | null>(null);
 
+  const defectIntegration = resolveDefectIntegration(selectedDefectId);
+  const profile = getContextualDefectProfile(defectIntegration?.id);
+  const activeMeshPins = meshPins.filter((pin) => pin.drawingId === drawingId && pin.drawingVersion === drawingId && pin.defectId === defectIntegration?.id);
+  const selectedMeshPin = activeMeshPins.find((pin) => pin.id === selectedMeshPinId) ?? activeMeshPins[0] ?? null;
+  const caseId = drawingId && defectIntegration?.id && selectedMeshPin
+    ? buildDefectCaseId(drawingId, defectIntegration.id, selectedMeshPin.id)
+    : null;
+  const answers = caseId ? answersByCase[caseId] ?? EMPTY_ANSWERS : EMPTY_ANSWERS;
+  const currentCase = evaluations.find((item) => item.caseId === caseId);
+  const previousEvaluation = currentCase?.evaluations.at(-1);
+  const validVolume = typeof volumeCm3 === 'number' && Number.isFinite(volumeCm3) && volumeCm3 > 0 ? volumeCm3 : null;
+  const validBoundingBox = boundingBox && Object.values(boundingBox).every((value) => Number.isFinite(value) && value > 0)
+    ? boundingBox
+    : null;
+  const geometryAvailable = conversionStatus === 'ready' && Boolean(validVolume || validBoundingBox);
+
   useEffect(() => {
-    if (!selectedDefectId || !result) {
+    setPlacementMode(false);
+    setSelectedMeshPinId(null);
+  }, [drawingId, selectedDefectId]);
+
+  useEffect(() => {
+    setInterventionTried('');
+    setSeverityAfter(String(previousEvaluation?.severityAfter ?? severityToLevel(selectedSeverity)));
+  }, [caseId, previousEvaluation?.severityAfter, selectedSeverity]);
+
+  useEffect(() => {
+    if (!selectedDefectId || !defectIntegration || !selectedMeshPin || !profile) {
       setKnowledgeResult(null);
       return;
     }
 
     let cancelled = false;
-    void inferKnowledgeRecommendations({
-      input: {
-        volumeCm3,
-        projectedAreaCm2: null,
-        defectId: selectedDefectId,
-        severity: selectedSeverity,
-        processParameters: {
-          pressureBar: result.pressureBar,
-          velocityMmPerS: result.screwVelocityMmPerS,
-          switchoverMs: result.switchoverMs,
-        },
-      },
-      output: {
-        calculatedAtISO: new Date().toISOString(),
-        rawResult: result as unknown as Record<string, unknown>,
-      },
-      defectContext: { defectId: selectedDefectId, severity: selectedSeverity },
-    }).then((next) => {
+    if (!drawingId) {
+      setKnowledgeResult(null);
+      return;
+    }
+
+    const context = buildDefectKnowledgeContext({
+      drawingId,
+      defectId: defectIntegration.id,
+      severity: levelToSeverity(selectedMeshPin.severity),
+      pin: selectedMeshPin,
+      answers,
+      volumeCm3: geometryAvailable ? validVolume : null,
+      boundingBoxMm: geometryAvailable ? validBoundingBox : null,
+      rawResult: (result ?? {}) as unknown as Record<string, unknown>,
+      processParameters: result ? {
+        pressureBar: result.pressureBar,
+        velocityMmPerS: result.screwVelocityMmPerS,
+        switchoverMs: result.switchoverMs,
+      } : undefined,
+    });
+    void inferKnowledgeRecommendations(context).then((next) => {
       if (!cancelled) setKnowledgeResult(next);
     }).catch(() => {
       if (!cancelled) setKnowledgeResult(null);
     });
 
     return () => { cancelled = true };
-  }, [boundingBox, volumeCm3, result, selectedDefectId, selectedSeverity]);
+  }, [answers, boundingBox, drawingId, defectIntegration?.id, defectIntegration?.pinId, geometryAvailable, profile, result, selectedDefectId, selectedMeshPin?.id, selectedSeverity, validBoundingBox, validVolume]);
 
-  // Normalizza gli id (defectPins usa underscore nella mappa)
-  const defectIntegration = resolveDefectIntegration(selectedDefectId);
-  const selectedPin = defectIntegration?.pinId ? (DEFECT_PINS as any)[defectIntegration.pinId] ?? null : null;
+  const selectedLabel = DEFECT_PAGE_CATALOG.find((item) => item.id === selectedDefectId)?.label ?? selectedDefectId;
+  const placeMeshPin = (position: { x: number; y: number; z: number }) => {
+    if (!drawingId || !defectIntegration) return;
+    const pin: DefectMeshPin = {
+      id: `pin_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      drawingId,
+      drawingVersion: drawingId,
+      defectId: defectIntegration.id,
+      severity: severityToLevel(selectedSeverity),
+      position: { ...position },
+      coordinateFrame: 'model-local',
+      placement: 'mesh-raycast',
+      createdAtISO: new Date().toISOString(),
+    };
+    addMeshPin(pin);
+    setSelectedMeshPinId(pin.id);
+    setPlacementMode(false);
+  };
+
+  const saveEvaluation = () => {
+    if (!caseId || !drawingId || !defectIntegration || !selectedMeshPin) return;
+    const parsedAfter = Number(severityAfter) as 0 | 1 | 2 | 3;
+    if (![0, 1, 2, 3].includes(parsedAfter) || interventionTried.trim().length < 3) return;
+    const parsedBefore = previousEvaluation?.severityAfter ?? selectedMeshPin.severity;
+    recordEvaluation({
+      caseId,
+      drawingId,
+      defectId: defectIntegration.id,
+      pinId: selectedMeshPin.id,
+      reportedSeverity: selectedMeshPin.severity,
+      pinPosition: { ...selectedMeshPin.position },
+      evaluations: [{
+        id: `evaluation_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        severityBefore: parsedBefore,
+        severityAfter: parsedAfter,
+        interventionTried: interventionTried.trim(),
+        answers: { ...answers },
+        evaluatedAtISO: new Date().toISOString(),
+      }],
+    });
+    setInterventionTried('');
+  };
 
   return (
-    <div className="flex h-full">
+    <div className="flex min-h-screen flex-col lg:h-full lg:flex-row">
       {/* Sidebar Difetti */}
-      <div className="w-64 border-r border-gray-300 p-4 bg-gray-100 flex-shrink-0">
+      <div className="w-full max-h-[45vh] overflow-y-auto border-b border-gray-300 p-4 bg-gray-100 flex-shrink-0 lg:max-h-none lg:w-64 lg:border-b-0 lg:border-r">
         <h2 className="font-bold text-lg mb-3">Difetti</h2>
 
-        <label className="block text-sm font-medium text-slate-200 mt-3">Severità correzione</label>
+        <label className="block text-sm font-medium text-slate-700 mt-3">Gravità segnalata</label>
 
         <select
-          aria-label="Severità correzione"
+          aria-label="Gravità segnalata"
           className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-slate-100"
           value={selectedSeverity}
           onChange={(e) => setSelectedSeverity(e.target.value as any)}
@@ -137,12 +219,87 @@ export default function DifettiPage() {
             </ul>
           </section>
         )}
+
+        {selectedDefectId && (
+          <section className="mt-4 border-t border-gray-300 pt-3 text-sm" aria-label="Contesto diagnostico">
+            <strong>Contesto del difetto</strong>
+            <p className="mt-1 text-xs text-gray-700">Disegno: {drawingId ?? 'non identificato; seleziona o carica un CAD'}</p>
+            <p className="text-xs text-gray-700">Posizione: il pin viene creato solo toccando/cliccando una mesh del modello. Non si inferiscono dettagli dello stampo dalla posizione.</p>
+            {geometryAvailable ? (
+              <p className="mt-1 text-xs text-gray-700">
+                Dati CAD osservati: {validVolume ? `volume ${validVolume} cm³` : 'volume non disponibile'}; {validBoundingBox ? `bounding box ${validBoundingBox.x} × ${validBoundingBox.y} × ${validBoundingBox.z} mm` : 'bounding box non disponibile'}.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-amber-800">Geometria CAD attendibile non disponibile; non viene usata per inferire cause.</p>
+            )}
+
+            {profile && (
+              <div className="mt-3 space-y-3">
+                <strong className="block">Verifiche mirate</strong>
+                {profile.causes.map((cause) => (
+                  <label key={cause.questionId} className="block text-xs text-gray-800">
+                    <span>{cause.question}</span>
+                    <select
+                      aria-label={cause.question}
+                      className="mt-1 w-full rounded border border-gray-400 bg-white px-2 py-1"
+                      value={answers[cause.questionId] ?? 'unknown'}
+                      onChange={(event) => {
+                        if (!caseId) return;
+                        setAnswersByCase((current) => ({
+                          ...current,
+                          [caseId]: { ...(current[caseId] ?? {}), [cause.questionId]: event.target.value as OperatorAnswer },
+                        }));
+                      }}
+                    >
+                      <option value="unknown">Non so</option>
+                      <option value="yes">Sì, verificato</option>
+                      <option value="no">No</option>
+                    </select>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 border-t border-gray-200 pt-3">
+              <button
+                type="button"
+                className={`w-full rounded px-3 py-2 text-sm font-semibold ${placementMode ? 'bg-amber-500 text-black' : 'bg-slate-900 text-white'} disabled:opacity-50`}
+                disabled={!drawingId || conversionStatus !== 'ready' || !viewerUrl}
+                aria-pressed={placementMode}
+                onClick={() => setPlacementMode((active) => !active)}
+              >
+                {placementMode ? 'Annulla posizionamento' : 'Segna difetto'}
+              </button>
+              {placementMode && <p className="mt-2 text-xs text-amber-900">Tocca la superficie del pezzo. Trascinare ruota il modello; un tocco fuori dalla mesh non crea pin.</p>}
+              {activeMeshPins.length > 0 && (
+                <ul className="mt-3 space-y-2">
+                  {activeMeshPins.map((pin, index) => (
+                    <li key={pin.id} className="flex items-center gap-2">
+                      <button type="button" className={`min-w-0 flex-1 rounded border px-2 py-2 text-left text-xs ${selectedMeshPin?.id === pin.id ? 'border-blue-700 bg-blue-50' : 'border-gray-300 bg-white'}`} onClick={() => setSelectedMeshPinId(pin.id)}>
+                        Pin {index + 1} · gravità {pin.severity} · mesh · model-local ({pin.position.x.toFixed(2)}, {pin.position.y.toFixed(2)}, {pin.position.z.toFixed(2)})
+                      </button>
+                      <button type="button" className="rounded border border-gray-300 px-2 py-2 text-xs" aria-label={`Rimuovi pin ${index + 1}`} onClick={() => {
+                        removeMeshPin(pin.id);
+                        if (selectedMeshPinId === pin.id) setSelectedMeshPinId(null);
+                      }}>Rimuovi</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* Viewer 3D */}
-      <div className="flex-1 p-4 flex items-center justify-center">
+      <div className="min-h-[300px] w-full flex-1 p-4 flex items-center justify-center lg:min-h-0">
         {viewerUrl ? (
-          <ThreeViewer viewerUrl={viewerUrl} selectedPin={selectedPin} />
+          <ThreeViewer
+            viewerUrl={viewerUrl}
+            meshPins={activeMeshPins}
+            placementMode={placementMode}
+            onPlacePin={placeMeshPin}
+          />
         ) : conversionStatus === 'converting' ? (
           <div className="text-center bg-blue-50 border border-blue-300 rounded-lg p-6">
             <div className="mb-3 text-blue-600 font-semibold">⏳ Conversione in corso...</div>
@@ -159,7 +316,7 @@ export default function DifettiPage() {
       </div>
 
       {/* Pannello Parametri (read-only) */}
-      <div className="w-80 border-l border-gray-300 p-4 bg-gray-50 flex-shrink-0">
+      <div className="w-full overflow-y-auto border-t border-gray-300 p-4 bg-gray-50 flex-shrink-0 lg:w-80 lg:border-t-0 lg:border-l">
         <h2 className="font-bold text-lg mb-3">Parametri</h2>
 
         {/* visualizza ultima correzione applicata */}
@@ -215,10 +372,52 @@ export default function DifettiPage() {
 
         {knowledgeResult && (knowledgeResult.diagnosis.length > 0 || knowledgeResult.recommendations.length > 0) && (
           <div className="mt-4 border-t border-gray-200 pt-3 text-sm">
-            <strong>Diagnosi</strong>
-            {knowledgeResult.diagnosis.map((item) => <div key={item.id} className="mt-1">{item.title}</div>)}
-            {knowledgeResult.recommendations.map((item) => <div key={item.id} className="mt-1 text-gray-700">{item.reason}</div>)}
+            <strong>Cause probabili e verifiche</strong>
+            {knowledgeResult.diagnosis.filter((item) => item.id.startsWith('defect-cause:')).map((item) => (
+              <div key={item.id} className="mt-3 border-t border-gray-200 pt-2">
+                <div className="font-medium">{item.title}</div>
+                <div className="mt-1 text-xs text-gray-600">{item.description}</div>
+                <div className="mt-1 text-[11px] text-gray-500">{String(item.metadata?.provenance ?? 'stimata')} · {item.source} · {String(item.metadata?.sourceReference ?? '')}</div>
+                <div className="mt-1 text-sm text-gray-700">{knowledgeResult.recommendations.find((recommendation) => recommendation.id === item.id.replace('defect-cause:', 'defect-action:'))?.reason}</div>
+              </div>
+            ))}
           </div>
+        )}
+
+        {selectedDefectId && !selectedMeshPin && (
+          <div className="mt-4 border-t border-gray-200 pt-3 text-sm text-amber-800">Segna il difetto sulla mesh per avviare una diagnosi associata alla posizione reale.</div>
+        )}
+
+        {selectedDefectId && caseId && selectedMeshPin && (
+          <section className="mt-4 border-t border-gray-200 pt-3 text-sm" aria-label="Valutazione dopo prova">
+            <strong>Valutazione dopo prova</strong>
+            <p className="mt-1 text-xs text-gray-600">Caso locale: {selectedLabel} · {drawingId} · pin {selectedMeshPin.id}. Gravità segnalata {selectedMeshPin.severity}. Registrazione locale; non è apprendimento automatico.</p>
+            <label className="mt-3 block text-xs font-medium">
+              Gravità dopo l’intervento
+              <select aria-label="Gravità dopo l’intervento" className="mt-1 w-full rounded border border-gray-400 bg-white px-2 py-1" value={severityAfter} onChange={(event) => setSeverityAfter(event.target.value)}>
+                <option value="0">0 · Assente / risolto</option>
+                <option value="1">1 · Lieve</option>
+                <option value="2">2 · Medio</option>
+                <option value="3">3 · Grave</option>
+              </select>
+            </label>
+            <label className="mt-2 block text-xs font-medium">
+              Intervento effettivamente provato
+              <textarea aria-label="Intervento effettivamente provato" className="mt-1 w-full rounded border border-gray-400 bg-white p-2" rows={3} value={interventionTried} onChange={(event) => setInterventionTried(event.target.value)} placeholder="Descrivi cosa è stato provato" />
+            </label>
+            <button type="button" className="mt-2 rounded bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50" disabled={!drawingId || !selectedMeshPin || interventionTried.trim().length < 3} onClick={saveEvaluation}>
+              Registra valutazione
+            </button>
+            {currentCase && currentCase.evaluations.length > 0 && (
+              <ol className="mt-3 space-y-2 text-xs text-gray-700">
+                {currentCase.evaluations.map((evaluation) => (
+                  <li key={evaluation.id} className="border-t border-gray-200 pt-2">
+                    Gravità {evaluation.severityBefore} → {evaluation.severityAfter}: {evaluation.interventionTried}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
         )}
 
         {!loading && !result && (

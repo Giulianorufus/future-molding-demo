@@ -12,25 +12,38 @@ function generateConversionId(): string {
 }
 
 export async function startCadPipeline(file: File) {
-  const drawing = useDrawingStore.getState();
-  try {
-    drawing.setResult({ isLoading: true });
-  } catch (e) {
-    // ignore
-  }
-
   const safeName = sanitizeFileName(file.name || 'upload');
   const ext = getFileExtension(file.name);
   const isStepOrIges = ['.step', '.stp', '.iges', '.igs'].includes(ext);
+  const drawingId = generateConversionId();
+
+  useDrawingStore.getState().setResult({
+    drawingId,
+    conversionId: isStepOrIges ? drawingId : null,
+    viewerUrl: null,
+    previewUrl: null,
+    glbUrl: null,
+    volumeCm3: null,
+    surfaceCm2: null,
+    boundingBox: null,
+    mesh: null,
+    gatePoint: null,
+    gateNormal: null,
+    isLoading: true,
+    error: null,
+    conversionStatus: isStepOrIges ? 'converting' : 'idle',
+    conversionMessage: undefined,
+  });
 
   try {
     // For STEP/IGES files: start conversion in background, show placeholder
     if (isStepOrIges) {
       // Generate unique conversion ID for race condition protection
-      const conversionId = generateConversionId();
+      const conversionId = drawingId;
       
       // Set conversion status immediately (no await)
       useDrawingStore.getState().setResult({
+        drawingId,
         viewerUrl: null,
         previewUrl: null,
         glbUrl: null,
@@ -89,6 +102,7 @@ export async function startCadPipeline(file: File) {
     }
 
     useDrawingStore.getState().setResult({
+      drawingId,
       viewerUrl: viewerUrl,
       previewUrl: null,
       glbUrl: null,

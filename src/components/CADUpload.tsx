@@ -55,6 +55,23 @@ export function CADUpload({ onAnalysisComplete, className }: CADUploadProps) {
     }
 
     setCurrentFile(file);
+    const drawingId = `upload_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    useDrawingStore.getState().setResult({
+      drawingId,
+      conversionId: null,
+      viewerUrl: null,
+      glbUrl: null,
+      previewUrl: null,
+      volumeCm3: null,
+      surfaceCm2: null,
+      boundingBox: null,
+      mesh: null,
+      gatePoint: null,
+      gateNormal: null,
+      isLoading: true,
+      error: null,
+      conversionStatus: 'converting',
+    });
     setIsAnalyzing(true);
     setPreviewUrl('');
     setAnalysisResult(null);

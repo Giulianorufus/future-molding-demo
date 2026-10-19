@@ -48,4 +48,37 @@ describe('drawingStore injection gates', () => {
     store.setResult({ gatePoint: null, gateNormal: null })
     expect(useDrawingStore.getState().gates).toEqual([])
   })
+
+  test('changing CAD clears the previous model gates, mesh and local geometry', () => {
+    const store = useDrawingStore.getState()
+    store.setResult({
+      drawingId: 'cad-a',
+      mesh: { positions: [1, 2, 3] },
+      boundingBox: { x: 1, y: 2, z: 3 },
+    })
+    store.addGate(gate('G1', 10))
+
+    useDrawingStore.getState().setResult({
+      drawingId: 'cad-b',
+      mesh: null,
+      boundingBox: null,
+      gatePoint: null,
+      gateNormal: null,
+    })
+
+    expect(useDrawingStore.getState()).toMatchObject({
+      drawingId: 'cad-b',
+      mesh: null,
+      boundingBox: null,
+      gates: [],
+      selectedGateId: null,
+      gatePoint: null,
+      gateNormal: null,
+    })
+  })
+
+  test('burn mark resolves to a pin in the active page catalog', () => {
+    const { resolveDefectIntegration } = require('@/defects/defectAdapter')
+    expect(resolveDefectIntegration('burn-mark')?.pinId).toBe('burn_marks')
+  })
 })

@@ -23,7 +23,7 @@ const DEFECT_INTEGRATIONS: readonly DefectIntegration[] = [
   {
     id: "burn_mark",
     aliases: ["burn-mark", "burn_mark", "burn mark", "burn marks", "bruciature"],
-    pinId: null,
+    pinId: "burn_marks",
     automaticAction: "Riduce la velocità d'iniezione; non modifica le temperature del materiale.",
     manualChecks: ["Controllare sfiati e aria intrappolata.", "Verificare permanenza nel cilindro e possibile degradazione o contaminazione del materiale."],
   },

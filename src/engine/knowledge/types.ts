@@ -62,6 +62,21 @@ export interface KnowledgeOutput {
 export interface DefectContext {
   defectId?: string | null
   severity?: string | null
+  severityLevel?: 0 | 1 | 2 | 3
+  drawingId?: string | null
+  pin?: {
+    id: string
+    position: { x: number; y: number; z: number }
+    coordinateFrame: 'model-local' | 'viewer-local'
+    placement: 'catalog-estimate' | 'mesh-raycast'
+    drawingVersion?: string
+  } | null
+  answers?: Record<string, 'yes' | 'no' | 'unknown'>
+  geometry?: {
+    volumeCm3?: number | null
+    boundingBoxMm?: { x: number; y: number; z: number } | null
+    source: 'cad-analysis'
+  } | null
   category?: string | null
   notes?: string[]
   appliedCorrections?: Record<string, unknown>[]
@@ -93,6 +108,7 @@ export interface Diagnosis {
   severity: 'low' | 'medium' | 'high'
   tags: string[]
   source: string
+  metadata?: Record<string, unknown>
 }
 
 export interface Recommendation {

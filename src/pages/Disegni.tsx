@@ -38,6 +38,7 @@ function pushToDrawingStore(d: AnyDrawing | null | undefined) {
   if (typeof ds.setResult === "function") {
     ds.setResult({
       ...d,
+      drawingId: String(d.id ?? d.key ?? d.name ?? viewerUrl ?? "") || null,
       viewerUrl,
       glbUrl,
       previewUrl,

@@ -16,11 +16,9 @@ export type DefectFix = {
   notes: string[];
 };
 
-const sev = (s: DefectSeverity) => (s === "low" ? 1 : s === "medium" ? 2 : 3);
-
-// Pure function: deterministically map defect + severity -> suggested partial patch
-export function applyDefectFix(defect: DefectId, severity: DefectSeverity): DefectFix {
-  const k = sev(severity);
+// Severity is recorded for diagnosis; it does not scale unvalidated correction proposals.
+export function applyDefectFix(defect: DefectId, _severity: DefectSeverity): DefectFix {
+  const k = 2;
 
   switch (defect) {
     case "short_shot":

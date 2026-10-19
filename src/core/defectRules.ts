@@ -39,17 +39,11 @@ import type { AppliedCorrection } from "../engine/defectApply";
 
 type Severity = "low" | "medium" | "high";
 
-function sevMul(sev: Severity) {
-  if (sev === "low") return 0.5;
-  if (sev === "high") return 1.5;
-  return 1.0;
-}
-
 export function getDefectCorrections(defectId: string, severity: Severity): AppliedCorrection[] {
   const d = rules.find((x) => x.id === defectId);
   if (!d) return [];
 
-  const m = sevMul(severity);
+  const referenceScale = 1;
 
   const rulesObj: any = (d as any).rules ?? (d as any).rule ?? (d as any).corrections ?? {};
   const out: AppliedCorrection[] = [];
@@ -71,10 +65,10 @@ export function getDefectCorrections(defectId: string, severity: Severity): Appl
         const n = Number(spec);
         if (n > 0.8 && n < 1.4) {
           op = "mul";
-          value = 1 + (n - 1) * m;
+          value = 1 + (n - 1) * referenceScale;
         } else {
           op = "add";
-          value = n * m;
+          value = n * referenceScale;
         }
       }
 
@@ -99,7 +93,7 @@ export function getDefectCorrections(defectId: string, severity: Severity): Appl
   if ((d as any).id === "flash") {
     const field = "holdingPressureBar";
     const id = `defect:${defectId}:${field}`;
-    const value = Math.round(80 * m);
+    const value = 80 * referenceScale;
     out.push({ id, source: "defect", defectId, severity, field, op: "add", value, priority: 60, reason: d.description ?? d.name ?? "flash" });
     return out;
   }

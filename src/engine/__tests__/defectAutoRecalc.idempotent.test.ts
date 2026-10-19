@@ -12,12 +12,16 @@ describe("defects auto recalc - idempotent + dedupe", () => {
     expect(a.audit.length).toBeGreaterThan(0);
   });
 
-  test("severity changes magnitude but still deterministic", () => {
+  test("severity does not scale the unvalidated correction proposal", () => {
     const base: any = { holdingPressureBar: 800 };
 
     const low = applyDefectAutoRecalc({ baseInput: base, defectId: "flash", severity: "low" as any });
     const high = applyDefectAutoRecalc({ baseInput: base, defectId: "flash", severity: "high" as any });
 
-    expect(low.patchedInput.holdingPressureBar).not.toEqual(high.patchedInput.holdingPressureBar);
+    expect(low.patchedInput).toEqual(high.patchedInput);
+    expect(low.appliedCorrections.map(({ field, op, value }) => ({ field, op, value })))
+      .toEqual(high.appliedCorrections.map(({ field, op, value }) => ({ field, op, value })));
+    expect(low.appliedCorrections[0].severity).toBe('low');
+    expect(high.appliedCorrections[0].severity).toBe('high');
   });
 });

@@ -1,6 +1,32 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import type { DefectMeshPin } from "@/defects/defectAssessment";
 type DefectPin = { id: string; x?: number; y?: number; defect?: string; severity?: number }
+
+export function isPlacementTap(start: { x: number; y: number }, end: { x: number; y: number }, threshold = 8): boolean {
+  return Math.hypot(end.x - start.x, end.y - start.y) <= threshold
+}
+
+export function raycastModelLocalPoint(
+  raycaster: THREE.Raycaster,
+  camera: THREE.Camera,
+  root: THREE.Object3D,
+  normalizedPointer: { x: number; y: number },
+): { x: number; y: number; z: number } | null {
+  const pointer = new THREE.Vector2(normalizedPointer.x, normalizedPointer.y)
+  raycaster.setFromCamera(pointer, camera)
+  const hit = raycaster.intersectObject(root, true).find((intersection) => {
+    let object: THREE.Object3D | null = intersection.object
+    while (object && object !== root) {
+      if (object.userData.defectPinId) return false
+      object = object.parent
+    }
+    return Boolean((intersection.object as THREE.Mesh).isMesh)
+  })
+  if (!hit) return null
+  const localPoint = root.worldToLocal(hit.point.clone())
+  return { x: localPoint.x, y: localPoint.y, z: localPoint.z }
+}
 
 export type ThreeViewerProps = {
   viewerUrl?: string | null;
@@ -8,12 +34,28 @@ export type ThreeViewerProps = {
   selectedPinId?: string | null;
   selectedPin?: { x: number; y: number; z: number } | null;
   onSelectPin?: (id: string | null) => void;
+  meshPins?: DefectMeshPin[];
+  placementMode?: boolean;
+  onPlacePin?: (position: { x: number; y: number; z: number }) => void;
 };
 
-export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selectedPinId, selectedPin, onSelectPin }) => {
+export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selectedPinId, selectedPin, onSelectPin, meshPins = [], placementMode = false, onPlacePin }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<THREE.Object3D | null>(null);
+  const syncMarkersRef = useRef<((pins: DefectMeshPin[]) => void) | null>(null);
+  const pinsRef = useRef(meshPins);
+  const placementModeRef = useRef(placementMode);
+  const onPlacePinRef = useRef(onPlacePin);
   const [status, setStatus] = useState<string>("Idle");
   const effectiveUrl = viewerUrl ?? null;
+
+  useEffect(() => {
+    pinsRef.current = meshPins;
+    syncMarkersRef.current?.(meshPins);
+  }, [meshPins]);
+
+  useEffect(() => { placementModeRef.current = placementMode }, [placementMode]);
+  useEffect(() => { onPlacePinRef.current = onPlacePin }, [onPlacePin]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -46,6 +88,14 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
 
     let stop = false;
     let controls: any = null;
+    let rootModel: THREE.Object3D | null = null;
+    let resizeObserver: ResizeObserver | null = null;
+    let activePointers = new Map<number, { x: number; y: number }>();
+    let multiPointerGesture = false;
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    let pinMarkers = new THREE.Group();
+    pinMarkers.name = "defect-mesh-pins";
     const animate = () => {
       if (stop) return;
       requestAnimationFrame(animate);
@@ -109,6 +159,9 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
             root.scale.setScalar(scale);
 
             scene.add(root);
+            root.add(pinMarkers);
+            rootModel = root;
+            rootRef.current = root;
 
             // Fit the camera to the converted model and orbit around its center.
             const fittedSize = maxDim * scale;
@@ -121,7 +174,7 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
             controls?.target?.set(0, 0, 0);
             controls?.update?.();
 
-            // If a selectedPin is provided, add a simple marker sphere to the scene
+            // Legacy catalog marker remains for non-defect viewers only.
             if (selectedPin) {
               try {
                 const marker = new THREE.Mesh(
@@ -129,12 +182,30 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
                   new THREE.MeshBasicMaterial({ color: 0xffcc00 })
                 );
                 marker.position.set(selectedPin.x, selectedPin.y, selectedPin.z);
-                scene.add(marker);
+                root.add(marker);
               } catch (e) {
                 // defensive: don't break rendering on marker issues
                 console.error('ThreeViewer: marker error', e);
               }
             }
+            const modelBounds = new THREE.Box3().setFromObject(root);
+            const worldMarkerRadius = modelBounds.getSize(new THREE.Vector3()).length() / 100;
+            const markerRadius = Math.max(worldMarkerRadius / Math.max(Math.abs(root.scale.x), 0.001), 0.02);
+            syncMarkersRef.current = (nextPins) => {
+              if (!rootModel) return;
+              pinMarkers.clear();
+              for (const pin of nextPins) {
+                const marker = new THREE.Mesh(
+                  new THREE.SphereGeometry(markerRadius, 14, 14),
+                  new THREE.MeshBasicMaterial({ color: pin.severity === 3 ? 0xef4444 : pin.severity === 2 ? 0xf59e0b : 0x22c55e, depthTest: false }),
+                );
+                marker.position.set(pin.position.x, pin.position.y, pin.position.z);
+                marker.renderOrder = 10;
+                marker.userData.defectPinId = pin.id;
+                pinMarkers.add(marker);
+              }
+            };
+            syncMarkersRef.current(pinsRef.current);
             animate();
             setStatus("Ready");
           },
@@ -155,8 +226,52 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
       }
     })();
 
+    const canvas = renderer.domElement;
+    const onPointerDown = (event: PointerEvent) => {
+      if (activePointers.size > 0) multiPointerGesture = true;
+      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    };
+    const onPointerUp = (event: PointerEvent) => {
+      const start = activePointers.get(event.pointerId);
+      activePointers.delete(event.pointerId);
+      if (!placementModeRef.current || !start || activePointers.size > 0 || !rootModel || !onPlacePinRef.current || multiPointerGesture) {
+        if (activePointers.size === 0) multiPointerGesture = false;
+        return;
+      }
+      if (!isPlacementTap(start, { x: event.clientX, y: event.clientY })) return;
+
+      const bounds = canvas.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) return;
+      pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+      pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+      const localPoint = raycastModelLocalPoint(raycaster, camera, rootModel, pointer);
+      if (localPoint) onPlacePinRef.current(localPoint);
+    };
+    const onPointerCancel = (event: PointerEvent) => {
+      activePointers.delete(event.pointerId);
+      if (activePointers.size === 0) multiPointerGesture = false;
+    };
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerCancel);
+    resizeObserver = new ResizeObserver(() => {
+      if (!containerRef.current) return;
+      const nextWidth = containerRef.current.clientWidth || 400;
+      const nextHeight = containerRef.current.clientHeight || 300;
+      camera.aspect = nextWidth / nextHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(nextWidth, nextHeight);
+    });
+    resizeObserver.observe(containerRef.current);
+
     return () => {
       stop = true;
+      resizeObserver?.disconnect();
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointercancel', onPointerCancel);
+      syncMarkersRef.current = null;
+      rootRef.current = null;
       controls?.dispose?.();
       renderer.dispose();
       renderer.forceContextLoss?.();

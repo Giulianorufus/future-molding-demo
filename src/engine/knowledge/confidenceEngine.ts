@@ -5,7 +5,10 @@ export function assessConfidence(
   similarCases: SimilarCase[],
   policies: PolicyRecord[]
 ): ConfidenceResult {
-  const baseValue = diagnosis.length * 20 + similarCases.length * 10 + policies.length * 10
+  const assessedDiagnosisCount = diagnosis.filter((item) =>
+    item.metadata?.provenance !== 'estimated' && item.metadata?.provenance !== 'operator-declared',
+  ).length
+  const baseValue = assessedDiagnosisCount * 20 + similarCases.length * 10 + policies.length * 10
   const value = Math.min(100, Math.max(0, baseValue))
   const tier: ConfidenceResult['tier'] = value >= 75 ? 'high' : value >= 40 ? 'medium' : 'low'
 
@@ -13,8 +16,8 @@ export function assessConfidence(
     {
       name: 'diagnosis',
       weight: 0.5,
-      value: Math.min(100, diagnosis.length * 20),
-      reason: 'Numero di diagnosi valide trovate',
+      value: Math.min(100, assessedDiagnosisCount * 20),
+      reason: 'Diagnosi non basate soltanto su ipotesi o dichiarazioni operatore',
     },
     {
       name: 'similarCases',
