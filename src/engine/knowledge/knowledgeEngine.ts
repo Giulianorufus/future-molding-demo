@@ -5,6 +5,7 @@ import { learn } from './learningEngine'
 import { matchCases } from './caseMatcher'
 import { analyzeStatistics } from './statisticsEngine'
 import { nullKnowledgeRepository } from './repository'
+import { buildGuidedDiagnosis } from './guidedDiagnosis'
 import type {
   KnowledgeContext,
   KnowledgeRepository,
@@ -15,6 +16,7 @@ import type {
 
 export interface KnowledgeEngineOptions {
   collectStatistics?: boolean
+  persistLearning?: boolean
 }
 
 export async function inferKnowledgeRecommendations(
@@ -53,10 +55,20 @@ export async function inferKnowledgeRecommendations(
     })
   }
 
-  const confidence = assessConfidence(diagnosis, similarCases, policies)
+  const defectId = context.defectContext?.defectId ?? context.input.defectId
+  const guidedDiagnosis = buildGuidedDiagnosis(defectId, context.defectContext?.observations)
+  if (defectId && !guidedDiagnosis) warnings.push({ code: 'unsupported-defect', message: 'Diagnosi guidata non disponibile per questo difetto.' })
+  // Questionnaire rules are not a calibrated statistical model. More hypotheses
+  // or more answered questions must not manufacture statistical confidence.
+  const confidence = guidedDiagnosis ? {
+    value: 0,
+    tier: 'unknown' as const,
+    components: [],
+    reason: 'Ipotesi qualitative da verificare in pressa; probabilità non calibrata.',
+  } : assessConfidence(diagnosis, similarCases, policies)
 
   const result: KnowledgeResult = {
-    version: '0.1.0',
+    version: '0.3.0',
     diagnosis,
     recommendations,
     confidence,
@@ -73,15 +85,21 @@ export async function inferKnowledgeRecommendations(
     metadata: {
       timestampISO: startAt,
       source: 'knowledgeEngine',
-      version: '0.1.0',
-      engineVersion: '0.1.0',
+      version: '0.3.0',
+      engineVersion: '0.3.0',
       recipeFingerprint: context.recipeFingerprint ?? null,
       pressId: context.input.pressId ?? null,
       materialId: context.input.materialId ?? null,
     },
+    guidedDiagnosis,
   }
 
-  const learningResult = await learn(context, result, repository)
+  if (guidedDiagnosis) {
+    result.reasoning.push({ stepId: 'guided-observations', description: 'Ordine delle verifiche basato sugli indizi dichiarati dall’operatore.', outcome: `${guidedDiagnosis.observedCount} osservazioni verificate`, metadata: { observations: context.defectContext?.observations ?? {} } })
+    result.nextActions = recommendations.map(item => ({ id: item.id, title: diagnosis.find(cause => cause.id === item.metadata?.hypothesisId)?.title ?? 'Confronta i casi simili', description: item.reason, type: 'verify', target: item.target }))
+  }
+
+  const learningResult = options.persistLearning === false ? { success: true } : await learn(context, result, repository)
   if (!learningResult.success && learningResult.error) {
     warnings.push({
       code: learningResult.error.code,

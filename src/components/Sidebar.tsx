@@ -10,13 +10,13 @@ import {
 } from "lucide-react";
 
 const linkBase =
-  "flex items-center gap-3 px-4 py-3 text-white hover:bg-blue-700 transition";
+  "flex shrink-0 items-center gap-3 whitespace-nowrap px-4 py-3 text-white hover:bg-blue-700 transition";
 const linkActive =
   "bg-blue-900 border-l-4 border-yellow-400";
 
 export default function Sidebar() {
   return (
-    <div className="w-60 bg-blue-800 text-white flex flex-col py-4">
+    <div className="flex w-full shrink-0 overflow-x-auto bg-blue-800 py-2 text-white md:w-60 md:flex-col md:py-4">
       <NavLink
         to="/dashboard"
         className={({ isActive }) =>
