@@ -1,3 +1,8 @@
+import { EXTENDED_DEFECT_GUIDES } from './extendedDefectGuides'
+
+export const DEFECT_CATEGORIES = ['Riempimento', 'Superficie', 'Materiale', 'Ritiro e dimensioni', 'Estrazione', 'Stabilità di processo', 'Punti d’iniezione'] as const
+export type DefectCategory = typeof DEFECT_CATEGORIES[number]
+
 /** Qualitative troubleshooting rules. Evidence counts order checks; they are not probabilities.
  * Sources explain mechanisms; the questionnaire and ordering are Future Molding heuristics.
  */
@@ -20,6 +25,8 @@ export type DefectGuide = {
   id: string
   label: string
   description: string
+  category: DefectCategory
+  aliases?: readonly string[]
   questions: readonly DiagnosticQuestion[]
   causes: readonly CauseRule[]
   source: { label: string; url: string }
@@ -38,9 +45,10 @@ const options = (...items: Array<[string, string]>) => [
 ]
 const autodesk = (title: string, url: string) => ({ label: `Autodesk Moldflow · ${title}`, url })
 
-export const DEFECT_GUIDES: readonly DefectGuide[] = [
+const BASE_DEFECT_GUIDES: readonly DefectGuide[] = [
   {
     id: 'short-shot', label: 'Riempimento incompleto', description: 'Manca materiale in una parte del pezzo.',
+    category: 'Riempimento', aliases: ['short_shot', 'short shot', 'cicca_incompleto', 'incompleto'],
     source: autodesk('Short shots', 'https://help.autodesk.com/cloudhelp/2015/ENU/MoldflowAdvisor/files/GUID-8E112178-5124-4049-B9BF-C4413A1EC44D.htm'),
     questions: [
       { id: 'cushion', label: 'Come si comporta il cuscino a fine post-pressione?', options: options(['zero', 'Si annulla'], ['variable', 'Varia tra le stampate'], ['stable', 'Resta positivo e stabile']) },
@@ -55,6 +63,7 @@ export const DEFECT_GUIDES: readonly DefectGuide[] = [
   },
   {
     id: 'flash', label: 'Bava / sormonto', description: 'Materiale oltre la chiusura stampo o attorno agli estrattori.',
+    category: 'Riempimento', aliases: ['bave', 'flashes', 'flash', 'giunzione_stamp'],
     source: { label: 'Eastman · Flashing, pagina 4 (copoliesteri)', url: 'https://www.eastman.com/content/dam/eastman/corporate/en/literature/p/ppd407.pdf' },
     questions: [
       { id: 'phase', label: 'Quando compare la bava?', options: options(['fill', 'Già nel riempimento'], ['hold', 'Solo con la post-pressione']) },
@@ -70,6 +79,7 @@ export const DEFECT_GUIDES: readonly DefectGuide[] = [
   },
   {
     id: 'burn-mark', label: 'Bruciature', description: 'Segni scuri da verificare per aria intrappolata, degrado o taglio eccessivo.',
+    category: 'Riempimento', aliases: ['bruciature', 'burn_mark', 'burn', 'diesel effect', 'dieseling'],
     source: autodesk('Burn marks', 'https://help.autodesk.com/cloudhelp/2019/ENU/MoldflowComm-Troubleshooting/files/GUID-82F65748-ACC8-46B8-861B-A48FB2FA26DF.htm'),
     questions: [
       { id: 'location', label: 'Dove si vedono i segni scuri?', options: options(['end', 'A fine percorso o in una tasca'], ['gate', 'Vicino al punto d’iniezione'], ['spread', 'Distribuiti sul pezzo']) },
@@ -84,6 +94,7 @@ export const DEFECT_GUIDES: readonly DefectGuide[] = [
   },
   {
     id: 'sink-mark', label: 'Affossamenti', description: 'Depressioni superficiali da ritiro locale non compensato.',
+    category: 'Ritiro e dimensioni', aliases: ['sink', 'sink_marks', 'sink_mark', 'sink marks', 'risucchi', 'affondamenti'],
     source: autodesk('Sink marks and voids', 'https://help.autodesk.com/cloudhelp/2014/ENU/MoldflowComm/files/GUID-18F57182-6059-4403-9075-398B08B7AD2A.htm'),
     questions: [
       { id: 'location', label: 'L’affossamento è in corrispondenza di nervature o zone spesse?', options: options(['yes', 'Sì'], ['no', 'No']) },
@@ -98,12 +109,22 @@ export const DEFECT_GUIDES: readonly DefectGuide[] = [
   },
 ]
 
-const aliases: Readonly<Record<string, string>> = {
-  short_shot: 'short-shot', bruciature: 'burn-mark', burn_mark: 'burn-mark',
-  bave: 'flash', sink: 'sink-mark', sink_marks: 'sink-mark', sink_mark: 'sink-mark',
-}
+export const DEFECT_GUIDES: readonly DefectGuide[] = [...BASE_DEFECT_GUIDES, ...EXTENDED_DEFECT_GUIDES]
+
+export const normalizeDefectText = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
 export function getDefectGuide(id?: string | null): DefectGuide | undefined {
-  return DEFECT_GUIDES.find(guide => guide.id === (aliases[id ?? ''] ?? id))
+  const key = normalizeDefectText(id ?? '')
+  if (!key) return undefined
+  return DEFECT_GUIDES.find(guide => [guide.id, guide.label, ...(guide.aliases ?? [])].some(name => normalizeDefectText(name) === key))
+}
+
+export function searchDefectGuides(query = '', category?: DefectCategory | ''): readonly DefectGuide[] {
+  const terms = normalizeDefectText(query).split(' ').filter(Boolean)
+  return DEFECT_GUIDES.filter(guide => {
+    const haystack = normalizeDefectText([guide.id, guide.label, guide.description, guide.category, ...(guide.aliases ?? [])].join(' '))
+    return (!category || guide.category === category) && terms.every(term => haystack.includes(term))
+  })
 }
 
 export function buildGuidedDiagnosis(id?: string | null, answers: DiagnosticAnswers = {}): GuidedDiagnosisReport | undefined {

@@ -68,7 +68,7 @@ export async function inferKnowledgeRecommendations(
   } : assessConfidence(diagnosis, similarCases, policies)
 
   const result: KnowledgeResult = {
-    version: '0.2.0',
+    version: '0.3.0',
     diagnosis,
     recommendations,
     confidence,
@@ -85,8 +85,8 @@ export async function inferKnowledgeRecommendations(
     metadata: {
       timestampISO: startAt,
       source: 'knowledgeEngine',
-      version: '0.2.0',
-      engineVersion: '0.2.0',
+      version: '0.3.0',
+      engineVersion: '0.3.0',
       recipeFingerprint: context.recipeFingerprint ?? null,
       pressId: context.input.pressId ?? null,
       materialId: context.input.materialId ?? null,
