@@ -1,3 +1,5 @@
+import type { DiagnosticAnswers, GuidedDiagnosisReport } from './guidedDiagnosis'
+
 export type KnowledgeVersion = string
 export type KnowledgeTimestamp = string
 export type ConfidenceTier = 'low' | 'medium' | 'high' | 'unknown'
@@ -65,6 +67,7 @@ export interface DefectContext {
   category?: string | null
   notes?: string[]
   appliedCorrections?: Record<string, unknown>[]
+  observations?: DiagnosticAnswers
 }
 
 export interface BaselineSnapshot {
@@ -162,6 +165,7 @@ export interface KnowledgeResult {
   reasoning: ReasoningStep[]
   nextActions: NextAction[]
   metadata: KnowledgeMetadata
+  guidedDiagnosis?: GuidedDiagnosisReport
 }
 
 export interface KnowledgeMachineRecord {

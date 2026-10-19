@@ -1,4 +1,5 @@
 import type { Diagnosis, KnowledgeContext, Recommendation, SimilarCase } from './types'
+import { buildGuidedDiagnosis } from './guidedDiagnosis'
 
 export async function recommend(
   diagnosis: Diagnosis[],
@@ -7,13 +8,15 @@ export async function recommend(
 ): Promise<Recommendation[]> {
   const recommendations: Recommendation[] = []
 
-  if (diagnosis.some((item) => item.id === 'defect-root-cause')) {
+  const guide = buildGuidedDiagnosis(context.defectContext?.defectId ?? context.input.defectId, context.defectContext?.observations)
+  for (const [index, hypothesis] of (guide?.hypotheses ?? []).entries()) {
     recommendations.push({
-      id: 'adjust-defect-parameters',
-      target: 'processParameters',
+      id: `verify-${hypothesis.id}`,
+      target: hypothesis.target,
       action: 'investigate',
-      reason: 'Rivedere i parametri di processo in presenza di un difetto identificato.',
-      priority: 80,
+      reason: hypothesis.checks.join(' '),
+      priority: 100 - index,
+      metadata: { hypothesisId: hypothesis.id, checks: [...hypothesis.checks], evidence: hypothesis.evidence },
     })
   }
 
