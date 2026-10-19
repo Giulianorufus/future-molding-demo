@@ -26,6 +26,8 @@ export default function FillSimulationViewer({ viewerUrl, durationMs }: Props) {
   const selectedGateId = useDrawingStore(s => s.selectedGateId)
   const selectedMaterialId = useMaterialStore(s => s.selectedMaterialId)
   const playbackDuration = Number.isFinite(durationMs) && durationMs > 0 ? durationMs : 3000
+  // Slow short shots for observation without changing the recipe time readout.
+  const previewDuration = Math.max(3000, playbackDuration)
   const reset = () => {
     runningRef.current = false
     progressRef.current = 0
@@ -259,7 +261,7 @@ export default function FillSimulationViewer({ viewerUrl, durationMs }: Props) {
       const elapsed = previousTime === undefined || document.hidden ? 0 : Math.max(0, now - previousTime)
       previousTime = now
       if (runningRef.current && !document.hidden) {
-        const p = Math.min(1, progressRef.current + elapsed * speedRef.current / playbackDuration)
+        const p = Math.min(1, progressRef.current + elapsed * speedRef.current / previewDuration)
         progressRef.current = p
         setProgress(p)
         if (p >= 1) { runningRef.current = false; setRunning(false) }
@@ -289,14 +291,20 @@ export default function FillSimulationViewer({ viewerUrl, durationMs }: Props) {
       renderer.forceContextLoss()
       renderer.domElement.remove()
     }
-  }, [viewerUrl, playbackDuration, selectedMaterialId])
+  }, [viewerUrl, playbackDuration, previewDuration, selectedMaterialId])
 
   const canPlay = status === 'ready' && gates.length > 0
   const toggle = () => {
     if (!canPlay) return
+    // Match the displayed action even if a final animation frame just completed.
+    if (running) {
+      runningRef.current = false
+      setRunning(false)
+      return
+    }
     if (progressRef.current >= 1) { progressRef.current = 0; setProgress(0) }
-    runningRef.current = !runningRef.current
-    setRunning(runningRef.current)
+    runningRef.current = true
+    setRunning(true)
   }
 
   return <section aria-label="Simulazione riempimento 3D" className="rounded-lg border bg-white p-3">
@@ -321,5 +329,6 @@ export default function FillSimulationViewer({ viewerUrl, durationMs }: Props) {
       <button className="rounded border px-4 py-2" onClick={reset}>Reset</button>
       <label className="ml-auto text-sm">Velocità anteprima <select aria-label="Velocità anteprima" className="rounded border p-2" value={speed} onChange={event => { const value = Number(event.target.value); speedRef.current = value; setSpeed(value) }}><option value={0.25}>0,25×</option><option value={0.5}>0,5×</option><option value={1}>1×</option></select></label>
     </div>
+    {previewDuration > playbackDuration && <p className="mt-2 text-xs text-gray-500">Riproduzione rallentata: {(previewDuration / speed / 1000).toFixed(2)} s per osservare il fronte. Il tempo della ricetta resta {(playbackDuration / 1000).toFixed(2)} s.</p>}
   </section>
 }
