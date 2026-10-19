@@ -10,8 +10,7 @@ import { usePressStore } from './pressStore'
 import { useMaterialStore } from './materialStore'
 import { useDefectsStore } from './defectsStore'
 import { applyDefectFix, type DefectSeverity } from '../defects/defectRules'
-import { normalizeCorrections } from '../lib/normalizeOutput'
-import { mapLegacyDefectId, mapLegacySeverity } from '../defects/defectAdapter'
+import { applyDefectSelection, mapLegacySeverity } from '../defects/defectAdapter'
 import { estimateThicknessFromBbox, estimateFlowLengthFromBbox } from '../lib/cadMetaEstimate'
 import { projectedAreaFromMesh, estimateProjectedAreaFromBboxFallback } from '../lib/projectedAreaFromMesh'
 
@@ -398,108 +397,24 @@ if (typeof window !== 'undefined') {
 
       // Read defect selection and apply corrections (pure function)
       const defectsState: any = useDefectsStore.getState?.() ?? {}
-      const defectId = mapLegacyDefectId(defectsState.selectedDefectId)
       const severity = mapLegacySeverity(defectsState.selectedSeverity)
-
-      function applyDefectDeltaToInput(baseInput: any, delta: any) {
-        if (!delta) return baseInput
-
-        const next: any = { ...baseInput }
-
-        next.injection = { ...(baseInput.injection ?? {}) }
-        next.packing = { ...(baseInput.packing ?? {}) }
-        next.temps = { ...(baseInput.temps ?? {}) }
-
-        const pct = (v: number, p: number) => v * (1 + p / 100)
-
-        if (typeof delta.injectionSpeed_pct === 'number' && typeof next.injection.speed === 'number') {
-          next.injection.speed = pct(next.injection.speed, delta.injectionSpeed_pct)
-        }
-        if (typeof delta.injectionPressure_pct === 'number' && typeof next.injection.pressure === 'number') {
-          next.injection.pressure = pct(next.injection.pressure, delta.injectionPressure_pct)
-        }
-        if (typeof delta.switchOver_pct === 'number' && typeof next.injection.switchover === 'number') {
-          next.injection.switchover = pct(next.injection.switchover, delta.switchOver_pct)
-        }
-
-        if (typeof delta.packPressure_pct === 'number' && typeof next.packing.pressure === 'number') {
-          next.packing.pressure = pct(next.packing.pressure, delta.packPressure_pct)
-        }
-        if (typeof delta.packTime_pct === 'number' && typeof next.packing.time === 'number') {
-          next.packing.time = pct(next.packing.time, delta.packTime_pct)
-        }
-
-        if (typeof delta.meltTemp_C === 'number' && typeof next.temps.melt === 'number') {
-          next.temps.melt = next.temps.melt + delta.meltTemp_C
-        }
-        if (typeof delta.moldTemp_C === 'number' && typeof next.temps.mold === 'number') {
-          next.temps.mold = next.temps.mold + delta.moldTemp_C
-        }
-
-        if (typeof delta.backPressure_pct === 'number' && typeof next.plasticizing?.backPressure === 'number') {
-          next.plasticizing = { ...(baseInput.plasticizing ?? {}) }
-          next.plasticizing.backPressure = pct(next.plasticizing.backPressure, delta.backPressure_pct)
-        }
-
-        return next
-      }
-
-      let finalInput = baseInput as any
-      if (defectId) {
-        const fix = applyDefectFix(defectId, severity)
-        const patched = applyDefectDeltaToInput(baseInput, fix.delta)
-        // derive structured appliedCorrections by comparing baseInput -> patched
-        const corrections: any[] = []
-        try {
-          const read = (obj: any, path: string[]) => path.reduce((a, p) => (a && a[p] !== undefined ? a[p] : undefined), obj)
-          const candidates: string[][] = [
-            ['injection','speed'], ['injection','pressure'], ['injection','switchover'],
-            ['packing','pressure'], ['packing','time'], ['temps','melt'], ['temps','mold'], ['plasticizing','backPressure']
-          ]
-          for (const p of candidates) {
-            const oldV = read(baseInput as any, p)
-            const newV = read(patched as any, p)
-            if (oldV !== undefined && newV !== undefined && oldV !== newV) {
-              const field = p.join('.')
-              const before = typeof oldV === 'number' ? oldV : undefined
-              const after = typeof newV === 'number' ? newV : undefined
-              const delta = typeof before === 'number' && typeof after === 'number' ? (after - before) : (typeof newV === 'number' && typeof oldV !== 'number' ? newV : undefined)
-              corrections.push({
-                id: `defect:${defectId}:${field}`,
-                type: 'defect',
-                target: field,
-                action: typeof delta === 'number' ? (delta < 0 ? 'decrease' : (delta > 0 ? 'increase' : 'set')) : 'set',
-                before,
-                after,
-                delta: typeof delta === 'number' ? delta : undefined,
-                reason: `defect=${defectId}`,
-                source: 'defectRules',
-              })
-            }
+      const selection = applyDefectSelection(baseInput as any, defectsState.selectedDefectId, severity)
+      const finalInput = selection.input
+      try {
+        const prev: any = (useParametriStore as any).getState?.().lastDefectFix ?? null
+        const prevStr = prev ? JSON.stringify(prev) : null
+        const nextStr = selection.lastDefectFix ? JSON.stringify(selection.lastDefectFix) : null
+        if (prevStr !== nextStr) {
+          ;(useParametriStore as any).setState({ lastDefectFix: selection.lastDefectFix })
+          if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+              if (selection.lastDefectFix) window.localStorage.setItem('fm:lastDefectFix', nextStr!)
+              else window.localStorage.removeItem('fm:lastDefectFix')
+            } catch (_) {}
           }
-        } catch (_) {
-          // ignore
         }
-        finalInput = patched
-        try {
-          const normalized = normalizeCorrections(corrections)
-          // set lastDefectFix only if it changed (idempotent)
-          try {
-            const prev: any = (useParametriStore as any).getState?.().lastDefectFix ?? null
-            const prevStr = prev ? JSON.stringify(prev) : null
-            const next = { defectId, severity, delta: fix.delta ?? undefined, notes: fix.notes, appliedCorrections: normalized }
-            const nextStr = JSON.stringify(next)
-            if (prevStr !== nextStr) {
-              ;(useParametriStore as any).setState({ lastDefectFix: next })
-              // persist best-effort
-              if (typeof window !== 'undefined' && window.localStorage) {
-                try { window.localStorage.setItem('fm:lastDefectFix', JSON.stringify(next)) } catch (_) {}
-              }
-            }
-          } catch (_) {
-            ;(useParametriStore as any).setState({ lastDefectFix: { defectId, severity, delta: fix.delta ?? undefined, notes: fix.notes, appliedCorrections: normalized } })
-          }
-        } catch (_) {}
+      } catch (_) {
+        ;(useParametriStore as any).setState({ lastDefectFix: selection.lastDefectFix })
       }
 
       return finalInput as CalculationInput

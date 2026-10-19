@@ -1,4 +1,4 @@
-export type DefectId = "short_shot" | "flash" | "sink" | "warpage";
+export type DefectId = "short_shot" | "burn_mark" | "flash" | "sink" | "warpage";
 
 export type DefectSeverity = "low" | "medium" | "high";
 
@@ -55,6 +55,12 @@ export function applyDefectFix(defect: DefectId, severity: DefectSeverity): Defe
           "Riduci picchi di pressione/velocità e pressione/tempo di pack.",
           "Se persiste: verifica forza di chiusura e parallelismo stampo.",
         ],
+      };
+
+    case "burn_mark":
+      return {
+        delta: { injectionSpeed_pct: -5 * k },
+        notes: ["Riduce la velocità d'iniezione; non modifica le temperature del materiale."],
       };
 
     case "sink":

@@ -28,8 +28,12 @@ export default function Step4Parametri({ onBack }: { onBack?: () => void }) {
             <div className="text-lg">{data.pressureBar ?? '--'}</div>
           </div>
           <div>
-            <div className="text-sm text-blue-800">Velocità (mm/s)</div>
-            <div className="text-lg">{data.velocityMmPerS ?? '--'}</div>
+            <div className="text-sm text-blue-800">Portata d'iniezione (cm³/s)</div>
+            <div className="text-lg">{data.injectionFlowCm3s ?? '--'}</div>
+          </div>
+          <div>
+            <div className="text-sm text-blue-800">Velocità vite (mm/s)</div>
+            <div className="text-lg">{data.screwVelocityMmPerS ?? '--'}</div>
           </div>
           <div>
             <div className="text-sm text-blue-800">Switchover (ms)</div>

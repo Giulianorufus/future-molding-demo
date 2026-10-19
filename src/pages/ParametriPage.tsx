@@ -161,7 +161,7 @@ export default function ParametriPage() {
               <tr className="border-b">
                 <td className="py-3 font-semibold">Velocità (vite)</td>
                 <td className="py-3 text-right">
-                  {result.velocityMmPerS} mm/s
+                  {result.screwVelocityMmPerS} mm/s
                 </td>
               </tr>
 

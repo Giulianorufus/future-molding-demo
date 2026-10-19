@@ -389,7 +389,9 @@ export function calculateParameters(input: CalcInput): CalcResult {
   const geom_area = (geometry as any)?.areaProiettata ?? (geometry as any)?.areaProiettata_cm2 ?? input.projAreaCm2 ?? projArea;
   const geom_vol = (geometry as any)?.volumeTotale ?? (geometry as any)?.volumePezzo_cm3 ?? input.volumeCm3 ?? pieceVol;
 
-  let velIniezione = hCalcInjectionSpeed(Number(geom_spess) || 0, material as any);
+  let velIniezione = input.injectionSpeedOverride
+    ? suggestedInjectionSpeedCm3s
+    : hCalcInjectionSpeed(Number(geom_spess) || 0, material as any);
   // clamp computed velocity to suggested/capped injection speed if applied
   try {
     if (typeof suggestedInjectionSpeedCm3s === 'number' && Number.isFinite(suggestedInjectionSpeedCm3s)) {
@@ -643,7 +645,14 @@ export function calcolaParametri(input: UserCalcInput): UserCalcOutput {
 
   const geometry = (input as any).geometry ?? {};
 
-  const internal = calculateParameters({ material: materialInfo, press: pressProfile, screwDiameter: machine.screwDiameter_mm ?? 0, projAreaCm2: geometry.areaProiettata_cm2, volumeCm3: geometry.volumePezzo_cm3 });
+  const internal = calculateParameters({
+    material: materialInfo,
+    press: pressProfile,
+    screwDiameter: machine.screwDiameter_mm ?? 0,
+    projAreaCm2: geometry.areaProiettata_cm2,
+    volumeCm3: geometry.volumePezzo_cm3,
+    injectionSpeedOverride: input.injectionSpeedOverride,
+  });
 
   const tempAny: any = internal.temperature ?? internal.temperatureSuggestion ?? {};
   const z1 = tempAny.z1 ?? internal.meltTempZones?.[0] ?? 0;

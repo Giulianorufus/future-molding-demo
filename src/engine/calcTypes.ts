@@ -72,6 +72,7 @@ export interface CalcInput {
   geometry: GeometryInput;
   machine: MachineInput;
   material: MaterialInput;
+  injectionSpeedOverride?: string | number;
 }
 
 export interface TemperatureOutput {

@@ -4,16 +4,9 @@ import { useParametriStore } from "../stores/parametriStore";
 import { useDefectsStore } from "../stores/defectsStore";
 import ThreeViewer from "../components/ThreeViewer";
 import { DEFECT_PINS } from "../data/defectPins";
+import { DEFECT_PAGE_CATALOG, resolveDefectIntegration } from "../defects/defectAdapter";
 import { inferKnowledgeRecommendations } from "../engine/knowledge/knowledgeEngine";
 import type { KnowledgeResult } from "../engine/knowledge/types";
-
-// Lista difetti mostrata nella sidebar
-const DEFECTS = [
-  { id: "short-shot", label: "Short Shot", desc: "Riempimento incompleto del pezzo." },
-  { id: "burn-mark", label: "Burn Mark", desc: "Bruciature dovute ad aria intrappolata." },
-  { id: "flash", label: "Bava / Sormonto", desc: "Materiale in eccesso oltre lo split-line." },
-  { id: "sink-mark", label: "Affossamento", desc: "Ritiro locale dovuto a spessore alto." },
-];
 
 export default function DifettiPage() {
   // Stato UI (non scrive mai su store)
@@ -56,7 +49,7 @@ export default function DifettiPage() {
         severity: selectedSeverity,
         processParameters: {
           pressureBar: result.pressureBar,
-          velocityMmPerS: result.velocityMmPerS,
+          velocityMmPerS: result.screwVelocityMmPerS,
           switchoverMs: result.switchoverMs,
         },
       },
@@ -75,8 +68,8 @@ export default function DifettiPage() {
   }, [boundingBox, volumeCm3, result, selectedDefectId, selectedSeverity]);
 
   // Normalizza gli id (defectPins usa underscore nella mappa)
-  const normalizedId = selectedDefectId ? selectedDefectId.replace(/-/g, "_") : null;
-  const selectedPin = normalizedId ? (DEFECT_PINS as any)[normalizedId] ?? null : null;
+  const defectIntegration = resolveDefectIntegration(selectedDefectId);
+  const selectedPin = defectIntegration?.pinId ? (DEFECT_PINS as any)[defectIntegration.pinId] ?? null : null;
 
   return (
     <div className="flex h-full">
@@ -97,7 +90,7 @@ export default function DifettiPage() {
           <option value="high">Alta</option>
         </select>
 
-        {DEFECTS.map((def) => (
+        {DEFECT_PAGE_CATALOG.map((def) => (
           <div
             key={def.id}
             className={`p-2 mb-2 rounded cursor-pointer ${
@@ -114,9 +107,36 @@ export default function DifettiPage() {
 
         <div className="mt-6 text-sm text-gray-700">
           {selectedDefectId
-            ? DEFECTS.find((d) => d.id === selectedDefectId)?.desc
+            ? DEFECT_PAGE_CATALOG.find((d) => d.id === selectedDefectId)?.desc
             : "Seleziona un difetto per evidenziare la zona sul modello."}
         </div>
+
+        {selectedDefectId && (
+          <button
+            type="button"
+            className="mt-3 text-sm text-blue-700 underline"
+            onClick={() => {
+              setSelectedDefectId(null)
+              setSelectedDefectIdStore(null)
+            }}
+          >
+            Rimuovi difetto
+          </button>
+        )}
+
+        {defectIntegration && (
+          <section className="mt-4 border-t border-gray-300 pt-3 text-sm" aria-live="polite">
+            <strong>{defectIntegration.automatic ? "Correzione proposta da verificare" : "Verifica manuale"}</strong>
+            <p className="mt-1 text-gray-700">
+              {defectIntegration.automatic
+                ? `${defectIntegration.automaticAction} Verificare il risultato sul pezzo; la selezione avvia il ricalcolo.`
+                : "Questo difetto non ha una correzione automatica validata per i limiti attuali."}
+            </p>
+            <ul className="mt-2 list-disc pl-5 text-gray-700">
+              {defectIntegration.manualChecks.map((check) => <li key={check}>{check}</li>)}
+            </ul>
+          </section>
+        )}
       </div>
 
       {/* Viewer 3D */}
@@ -164,7 +184,9 @@ export default function DifettiPage() {
             <div>
               <strong>Iniezione:</strong>
               <br />
-              Velocità: {result.velocityMmPerS ?? "--"} mm/s
+              Portata iniezione: {result.injectionFlowCm3s ?? "--"} cm³/s
+              <br />
+              Velocità vite: {result.screwVelocityMmPerS ?? "--"} mm/s
               <br />
               Pressione: {result.pressureBar ?? "--"} bar
             </div>
