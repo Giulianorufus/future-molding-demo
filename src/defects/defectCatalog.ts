@@ -18,6 +18,12 @@ export interface CatalogCauseAction {
   evidenceStatus: 'verified-in-scope'
 }
 
+export interface DiagnosticQuestion {
+  id: string
+  text: string
+  causeId: string | null
+}
+
 export interface DefectCatalogEntry {
   id: string
   legacyIds: readonly string[]
@@ -27,7 +33,7 @@ export interface DefectCatalogEntry {
   description: string
   symptoms: readonly string[]
   severityCriteria: { 1: string; 2: string; 3: string }
-  diagnosticQuestions: readonly string[]
+  diagnosticQuestions: readonly DiagnosticQuestion[]
   probableCauses: readonly CatalogCauseAction[]
   orderedActions: readonly CatalogCauseAction[]
   sources: readonly { publisher: string; title: string; reference: string; supports: string; limit: string }[]
@@ -57,6 +63,7 @@ function pending(input: {
 }): DefectCatalogEntry {
   return {
     ...input,
+    diagnosticQuestions: input.diagnosticQuestions.map((text, index) => ({ id: `${input.id}-q${index + 1}`, text, causeId: null })),
     legacyIds: input.legacyIds ?? [],
     synonymsIt: input.synonymsIt ?? [],
     semanticCautions: input.semanticCautions,
@@ -72,6 +79,10 @@ function pending(input: {
 
 function verifiedCause(input: Omit<CatalogCauseAction, 'evidenceStatus'>): CatalogCauseAction {
   return { ...input, evidenceStatus: 'verified-in-scope' }
+}
+
+function questionsForCauses(causes: readonly CatalogCauseAction[]): DiagnosticQuestion[] {
+  return causes.map((cause) => ({ id: cause.questionId, text: cause.question, causeId: cause.id }))
 }
 
 const shortShot = [
@@ -106,16 +117,16 @@ const partialSources = {
 
 export const DEFECT_CATALOG: readonly DefectCatalogEntry[] = [
   {
-    id: 'short_shot', legacyIds: ['short-shot', 'SHORT_SHOT', 'short shot', 'Incompletezza', 'Cicca / Incompleto', 'cicca_incompleto', 'Riempimento incompleto', 'Mancanza', 'pezzi mancanti'], nameIt: 'Mancato riempimento / Short Shot', synonymsIt: ['Cicca', 'Incompletezza'], description: 'Cavità o estremità del pezzo non completamente riempita.', symptoms: ['Estremità o zone della cavità incomplete', 'Difetto ripetibile o variabile per cavità'], severityCriteria: genericSeverity, diagnosticQuestions: shortShot.map((cause) => cause.question), probableCauses: shortShot, orderedActions: shortShot, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§22 PDF/stampata p. 60', supports: 'Cause e rimedi condizionali letti integralmente', limit: 'Scope generale engineering thermoplastics; grade-specific non validato, PA6/PA66 soltanto famiglie in legenda' }], verificationStatus: 'partial', automationStatus: 'proposed', correctionId: 'short_shot',
+    id: 'short_shot', legacyIds: ['short-shot', 'SHORT_SHOT', 'short shot', 'Incompletezza', 'Cicca / Incompleto', 'cicca_incompleto', 'Riempimento incompleto', 'Mancanza', 'pezzi mancanti'], nameIt: 'Mancato riempimento / Short Shot', synonymsIt: ['Cicca', 'Incompletezza'], description: 'Cavità o estremità del pezzo non completamente riempita.', symptoms: ['Estremità o zone della cavità incomplete', 'Difetto ripetibile o variabile per cavità'], severityCriteria: genericSeverity, diagnosticQuestions: questionsForCauses(shortShot), probableCauses: shortShot, orderedActions: shortShot, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§22 PDF/stampata p. 60', supports: 'Cause e rimedi condizionali letti integralmente', limit: 'Scope generale engineering thermoplastics; grade-specific non validato, PA6/PA66 soltanto famiglie in legenda' }], verificationStatus: 'partial', automationStatus: 'proposed', correctionId: 'short_shot',
   },
   {
-    id: 'burn_mark', legacyIds: ['burn-mark', 'burn_mark', 'burn', 'burn marks', 'bruciature', 'bruciatura', 'diesel', 'segni di bruciatura'], nameIt: 'Bruciature / Effetto diesel', synonymsIt: ['Burn Mark', 'Burn marks'], semanticCautions: ['Effetto diesel da aria compressa e burning streaks da degradazione/shear sono fenomeni distinti; non assimilare a materiale_degradato.'], description: 'Macchia scura; distinguere aria compressa (diesel effect) da degradazione termica/shear (burning streaks).', symptoms: ['Annerimento localizzato, spesso a fine flusso/fronti confluenti', 'Striature diffuse o odore richiedono diagnosi distinta'], severityCriteria: genericSeverity, diagnosticQuestions: burn.map((cause) => cause.question), probableCauses: burn, orderedActions: burn, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§3 PDF pp. 10–11 / stampate 10–11; §18 PDF/stampata p. 52', supports: 'Diesel effect e burning streaks distinti', limit: 'Scope generale; grade-specific da validare, PP/ABS/PC non in legenda' }, partialSources.process], verificationStatus: 'partial', automationStatus: 'proposed', correctionId: 'burn_mark',
+    id: 'burn_mark', legacyIds: ['burn-mark', 'burn_mark', 'burn', 'burn marks', 'bruciature', 'bruciatura', 'diesel', 'segni di bruciatura'], nameIt: 'Bruciature / Effetto diesel', synonymsIt: ['Burn Mark', 'Burn marks'], semanticCautions: ['Effetto diesel da aria compressa e burning streaks da degradazione/shear sono fenomeni distinti; non assimilare a materiale_degradato.'], description: 'Macchia scura; distinguere aria compressa (diesel effect) da degradazione termica/shear (burning streaks).', symptoms: ['Annerimento localizzato, spesso a fine flusso/fronti confluenti', 'Striature diffuse o odore richiedono diagnosi distinta'], severityCriteria: genericSeverity, diagnosticQuestions: questionsForCauses(burn), probableCauses: burn, orderedActions: burn, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§3 PDF pp. 10–11 / stampate 10–11; §18 PDF/stampata p. 52', supports: 'Diesel effect e burning streaks distinti', limit: 'Scope generale; grade-specific da validare, PP/ABS/PC non in legenda' }, partialSources.process], verificationStatus: 'partial', automationStatus: 'proposed', correctionId: 'burn_mark',
   },
   {
-    id: 'flash', legacyIds: ['bave', 'bava', 'BAVE', 'sbavatura', 'sormonto', 'fuga materiale', 'parting-line flash'], nameIt: 'Bave / Flash', synonymsIt: ['Bava', 'Sormonto', 'Flash'], semanticCautions: ['giunzione_stamp/mold mismatch è guasto attrezzatura correlato, non sinonimo di flash.'], description: 'Film o eccesso di materiale oltre il piano di chiusura o altre giunzioni.', symptoms: ['Bava al parting line, espulsori o inserti', 'Distribuzione uniforme o localizzata da osservare'], severityCriteria: genericSeverity, diagnosticQuestions: flash.map((cause) => cause.question), probableCauses: flash, orderedActions: flash, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§9 PDF/stampata p. 28', supports: 'Cause distinte e rimedi condizionati', limit: 'Scope generale; grade-specific da validare, non convalida percentuali software' }, partialSources.hotRunner], verificationStatus: 'partial', automationStatus: 'proposed', correctionId: 'flash',
+    id: 'flash', legacyIds: ['bave', 'bava', 'BAVE', 'sbavatura', 'sormonto', 'fuga materiale', 'parting-line flash'], nameIt: 'Bave / Flash', synonymsIt: ['Bava', 'Sormonto', 'Flash'], semanticCautions: ['giunzione_stamp/mold mismatch è guasto attrezzatura correlato, non sinonimo di flash.'], description: 'Film o eccesso di materiale oltre il piano di chiusura o altre giunzioni.', symptoms: ['Bava al parting line, espulsori o inserti', 'Distribuzione uniforme o localizzata da osservare'], severityCriteria: genericSeverity, diagnosticQuestions: questionsForCauses(flash), probableCauses: flash, orderedActions: flash, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§9 PDF/stampata p. 28', supports: 'Cause distinte e rimedi condizionati', limit: 'Scope generale; grade-specific da validare, non convalida percentuali software' }, partialSources.hotRunner], verificationStatus: 'partial', automationStatus: 'proposed', correctionId: 'flash',
   },
   {
-    id: 'sink', legacyIds: ['sink-mark', 'sink_mark', 'sink_marks', 'ritiro', 'RITIRO', 'affossamento', "segni d'affondamento"], nameIt: 'Affossamenti / Sink marks', synonymsIt: ['Sink', 'Segni di ritiro'], semanticCautions: ['Vuoti/bolle/porosità interni sono schede correlate ma distinte; una depressione superficiale non dimostra una cavità interna.'], description: 'Depressione superficiale da distinguere da vuoto interno e peso fuori specifica.', symptoms: ['Depressione vicino a nervature/sezioni spesse', 'Comparsa immediata o post-ejection da registrare'], severityCriteria: genericSeverity, diagnosticQuestions: sink.map((cause) => cause.question), probableCauses: sink, orderedActions: sink, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§5 PDF/stampata p. 14; figure PDF pp. 15–17', supports: 'Ritiro locale, holding e casi geometrici', limit: 'Esempi Ultramid rinforzato, non tutti i grade; niente delta pack universale' }], verificationStatus: 'partial', automationStatus: 'manual', correctionId: null,
+    id: 'sink', legacyIds: ['sink-mark', 'sink_mark', 'sink_marks', 'ritiro', 'RITIRO', 'affossamento', "segni d'affondamento"], nameIt: 'Affossamenti / Sink marks', synonymsIt: ['Sink', 'Segni di ritiro'], semanticCautions: ['Vuoti/bolle/porosità interni sono schede correlate ma distinte; una depressione superficiale non dimostra una cavità interna.'], description: 'Depressione superficiale da distinguere da vuoto interno e peso fuori specifica.', symptoms: ['Depressione vicino a nervature/sezioni spesse', 'Comparsa immediata o post-ejection da registrare'], severityCriteria: genericSeverity, diagnosticQuestions: questionsForCauses(sink), probableCauses: sink, orderedActions: sink, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§5 PDF/stampata p. 14; figure PDF pp. 15–17', supports: 'Ritiro locale, holding e casi geometrici', limit: 'Esempi Ultramid rinforzato, non tutti i grade; niente delta pack universale' }], verificationStatus: 'partial', automationStatus: 'manual', correctionId: null,
   },
   pending({ id: 'warpage', legacyIds: ['deformazione', 'deformazioni', 'deformation', 'DEFORMAZIONE', 'imbarcamento', 'imbarcamento centrale'], nameIt: 'Imbarcamento / Warpage', synonymsIt: ['Deformazione'], description: 'Deviazione della forma o dimensione dopo espulsione/condizionamento.', symptoms: ['Deviazione dimensionale misurabile', 'Differenze tra lati o cavità'], diagnosticQuestions: ['Quale quota/direzione devia e quando è stata misurata?', 'È stata verificata differenza tra lati o cavità?'], verificationStatus: 'partial', sources: [partialSources.tpu] }),
   pending({ id: 'weld_line', legacyIds: ['linea_giunzione', 'linea di giunzione', 'linea di saldatura', 'weld line', 'linea di giunzione debole'], nameIt: 'Linea di giunzione / Weld line', description: 'Segno o discontinuità dove si incontrano fronti di flusso; distinguere esito estetico e resistenza.', symptoms: ['Linea tra due fronti', 'Eventuale debolezza meccanica da prova separata'], diagnosticQuestions: ['È solo estetica o la resistenza è stata misurata?', 'Dove si trova rispetto a gate e ostacoli?'], semanticCautions: ['Non confondere con giunzione_stamp/mold mismatch, guasto di accoppiamento dello stampo.'] }),

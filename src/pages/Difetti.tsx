@@ -287,13 +287,13 @@ export default function DifettiPage() {
             {catalogEntry.diagnosticQuestions.length > 0 && (
               <div className="mt-3 space-y-3">
                 <strong className="block">Verifiche mirate</strong>
-                {catalogEntry.diagnosticQuestions.map((question, index) => {
-                  const questionId = profile?.probableCauses[index]?.questionId ?? `catalog-question-${index}`
+                {catalogEntry.diagnosticQuestions.map((question) => {
+                  const questionId = question.id
                   return (
                   <label key={questionId} className="block text-xs text-gray-800">
-                    <span>{question}</span>
+                    <span>{question.text}</span>
                     <select
-                      aria-label={question}
+                      aria-label={question.text}
                       className="mt-1 w-full rounded border border-gray-400 bg-white px-2 py-1"
                       value={answers[questionId] ?? 'unknown'}
                       onChange={(event) => {
