@@ -85,7 +85,7 @@ for (const viewport of [
     await expect(pinCount).toHaveCount(1)
     await page.getByRole('button', { name: 'Annulla posizionamento' }).click()
 
-    const endFillQuestion = page.getByLabel('La macchia nera è localizzata a fine riempimento, nervature o fronti confluenti?')
+    const endFillQuestion = page.getByLabel(/^La macchia è nera e localizzata/)
     await endFillQuestion.selectOption('yes')
     await expect(page.getByText(/Riscontro dichiarato dall’operatore/)).toBeVisible()
 
@@ -101,7 +101,7 @@ for (const viewport of [
     expect(nextBox).not.toBeNull()
     await tap(nextBox!.x + nextBox!.width / 2, nextBox!.y + nextBox!.height / 2)
     await expect(page.getByRole('button', { name: /Pin 1 · gravità 2 · mesh/ })).toBeVisible()
-    await expect(page.getByLabel('La macchia nera è localizzata a fine riempimento, nervature o fronti confluenti?')).toHaveValue('unknown')
+    await expect(page.getByLabel(/^La macchia è nera e localizzata/)).toHaveValue('unknown')
 
     await page.getByLabel('Gravità dopo l’intervento').selectOption('0')
     await page.getByLabel('Intervento effettivamente provato').fill('Verificato il pezzo: difetto assente dopo la prova.')

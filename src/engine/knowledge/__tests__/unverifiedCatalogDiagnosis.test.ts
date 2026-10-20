@@ -23,7 +23,7 @@ describe('incomplete defect catalog entries', () => {
         defectId,
         severity: 'medium',
         pin,
-        answers: { 'catalog-question-0': 'unknown' },
+        answers: { [`${defectId}.any-question`]: 'unknown' },
         volumeCm3: null,
         boundingBoxMm: null,
       })

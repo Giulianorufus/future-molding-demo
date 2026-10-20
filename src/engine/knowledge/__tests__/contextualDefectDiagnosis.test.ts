@@ -34,7 +34,7 @@ describe('contextual defect diagnosis', () => {
   test('carries drawing and pin into estimated and operator-declared causes', async () => {
     const diagnosis = await diagnose(baseContext, [])
     const estimated = diagnosis.find((item) => item.id === 'defect-cause:compressed-air')
-    const declared = diagnosis.find((item) => item.id === 'defect-cause:thermal-or-shear-damage')
+    const declared = diagnosis.find((item) => item.id === 'defect-cause:thermal-degradation')
 
     expect(estimated).toMatchObject({
       metadata: {

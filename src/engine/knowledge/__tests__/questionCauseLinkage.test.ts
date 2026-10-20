@@ -18,8 +18,8 @@ describe('question-to-cause linkage', () => {
   test('answers keyed by question.id stay tied to the right cause after reordering questions', async () => {
     const entry = resolveDefectCatalogEntry('burn_mark')!
     const reordered = [...entry.diagnosticQuestions].reverse()
-    const target = reordered[0]
-    expect(target.causeId).toBe('parting-line-air-release')
+    const target = reordered.find((q) => q.causeId === 'high-shear-streaks')!
+    expect(reordered.indexOf(target)).not.toBe(entry.diagnosticQuestions.indexOf(target))
     expect(reordered.map((q) => q.causeId)).not.toEqual(entry.diagnosticQuestions.map((q) => q.causeId))
 
     const answers: Record<string, 'yes' | 'no' | 'unknown'> = {}
@@ -49,7 +49,7 @@ describe('question-to-cause linkage', () => {
       }
     }
     const jetting = resolveDefectCatalogEntry('jetting')!
-    expect(jetting.diagnosticQuestions.map((q) => q.id)).toEqual(['jetting-q1', 'jetting-q2'])
+    expect(jetting.diagnosticQuestions.map((q) => q.id)).toEqual(['jetting.starts-at-gate', 'jetting.first-fill-phase-only'])
     expect(jetting.diagnosticQuestions.every((q) => q.causeId === null)).toBe(true)
   })
 })
