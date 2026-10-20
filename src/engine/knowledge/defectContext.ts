@@ -15,25 +15,25 @@ export function getContextualDefectProfile(defectId?: string | null): Contextual
   }
 }
 
-export interface AnswerConflict {
+export interface ClarificationRequest {
   causeIds: string[]
   questionIds: string[]
   message: string
   discriminatingCheck: string
 }
 
-// Fenomeni distinti possono coesistere sul pezzo, ma non come “Sì” per lo stesso segno: nessuna esclusione automatica.
-export function detectAnswerConflicts(defectId: string | null | undefined, answers: Record<string, OperatorAnswer> | undefined): AnswerConflict[] {
+// Fenomeni distinti possono coesistere (zone o segni diversi): si chiede un chiarimento, nessuna esclusione automatica.
+export function detectClarificationRequests(defectId: string | null | undefined, answers: Record<string, OperatorAnswer> | undefined): ClarificationRequest[] {
   const entry = resolveDefectCatalogEntry(defectId)
   if (!entry || !answers) return []
-  const conflicts: AnswerConflict[] = []
+  const conflicts: ClarificationRequest[] = []
   for (const group of entry.distinctPhenomena ?? []) {
     const confirmed = entry.probableCauses.filter((cause) => group.causeIds.includes(cause.id) && answers[cause.questionId] === 'yes')
     if (confirmed.length < 2) continue
     conflicts.push({
       causeIds: confirmed.map((cause) => cause.id),
       questionIds: confirmed.map((cause) => cause.questionId),
-      message: `Risposte in contrasto per lo stesso segno: ${confirmed.map((cause) => cause.title).join(' / ')}. Le descrizioni sono incompatibili su un unico segno.`,
+      message: `Chiarimento richiesto: hai dichiarato insieme ${confirmed.map((cause) => cause.title).join(' / ')}. I fenomeni possono coesistere: indica se riguardano zone o segni diversi. Entrambe le ipotesi restano aperte.`,
       discriminatingCheck: group.discriminatingCheck,
     })
   }

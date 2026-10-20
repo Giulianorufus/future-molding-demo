@@ -4,7 +4,7 @@ import { buildDefectKnowledgeContext } from '@/defects/defectAssessment'
 import type { DefectMeshPin } from '@/defects/defectAssessment'
 
 describe('incomplete defect catalog entries', () => {
-  test.each(['voids', 'jetting', 'weld_line', 'surface_roughness'])(
+  test.each(['voids', 'cold_slug', 'flow_marks', 'surface_roughness'])(
     '%s is selectable/diagnosable as catalog status but emits no technical recommendation',
     async (defectId) => {
       const pin: DefectMeshPin = {

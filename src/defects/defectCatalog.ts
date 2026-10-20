@@ -15,6 +15,7 @@ export interface CatalogCauseAction {
   order: number
   source: string
   sourceReference: string
+  materialLimit?: string
   evidenceStatus: 'verified-in-scope'
 }
 
@@ -118,6 +119,66 @@ const sink = [
   verifiedCause({ id: 'post-ejection-hot-core', title: 'Comparsa o peggioramento dopo l’estrazione (possibile calore residuo del centro)', description: 'BASF descrive sink che compaiono dopo l’espulsione; un Sì conferma solo la tempistica, il calore residuo resta ipotesi.', questionId: 'after-ejection', question: 'Il segno compare o peggiora solo dopo l’estrazione?', action: 'Confronta aspetto prima/dopo estrazione e verifica raffreddamento della zona.', domain: 'process', order: 3, source: BASF, sourceReference: '§5, PDF/stampata p. 14' }),
 ]
 
+const BASF_SCOPE = 'Scope generale engineering thermoplastics; la legenda p. 70 nomina Ultramid PA6/PA66/PA6/66/PA6/6T e non PP/ABS/PC; nessun valore numerico o percentuale adottato.'
+
+function causeEntry(input: {
+  id: string
+  legacyIds: string[]
+  nameIt: string
+  synonymsIt?: string[]
+  semanticCautions?: string[]
+  description: string
+  symptoms: string[]
+  contextQuestions: { id: string; text: string }[]
+  causes: readonly CatalogCauseAction[]
+  sources: DefectCatalogEntry['sources']
+  distinctPhenomena?: DefectCatalogEntry['distinctPhenomena']
+}): DefectCatalogEntry {
+  return {
+    id: input.id,
+    legacyIds: input.legacyIds,
+    nameIt: input.nameIt,
+    synonymsIt: input.synonymsIt ?? [],
+    semanticCautions: input.semanticCautions,
+    description: input.description,
+    symptoms: input.symptoms,
+    severityCriteria: genericSeverity,
+    diagnosticQuestions: [...pendingQuestions(input.id, input.contextQuestions), ...questionsForCauses(input.causes)],
+    probableCauses: input.causes,
+    orderedActions: input.causes,
+    sources: input.sources,
+    verificationStatus: 'partial',
+    automationStatus: 'disabled',
+    correctionId: null,
+    distinctPhenomena: input.distinctPhenomena,
+  }
+}
+
+const warpage = [
+  verifiedCause({ id: 'uneven-mold-temperature', title: 'Temperature stampo sfavorevoli tra metà e nuclei', description: 'BASF §23: il ritiro differenziale dipende anche dalle temperature stampo scelte; la fonte non dà valori.', questionId: 'mold-half-temperature-unfavorable', question: 'Le temperature stampo impostate o misurate su metà e nuclei risultano sfavorevoli o non uniformi rispetto al riferimento di processo?', action: 'Valuta temperature diverse tra metà stampo e nuclei mobili, verificando l’effetto sulla deformazione. Nessun valore automatico.', domain: 'process', order: 1, source: BASF, sourceReference: '§23, PDF/stampata p. 62; figura p. 63', materialLimit: 'BASF: soluzione spesso utile solo per termoplastici non rinforzati.' }),
+  verifiedCause({ id: 'wall-thickness-differences', title: 'Spessori di parete diversi o salti di spessore', description: 'BASF §23: pressioni di impaccamento e orientamenti diversi nelle zone generano ritiro differenziale; il pin non certifica la geometria.', questionId: 'wall-thickness-variation', question: 'Nella zona deformata il pezzo ha spessori diversi o salti di spessore?', action: 'Valuta con il progettista di ridurre le differenze di sezione: è un intervento di design, non automatico.', domain: 'mold', order: 2, source: BASF, sourceReference: '§23, PDF/stampata p. 62', materialLimit: 'Nessun limite per materiale indicato dalla fonte.' }),
+  verifiedCause({ id: 'high-pressure-gradient', title: 'Gradiente di pressione elevato lungo il percorso di flusso', description: 'BASF §23: richiede un dato di processo o di simulazione; non si deduce dal pin.', questionId: 'pressure-gradient-high', question: 'Un dato di processo o di simulazione indica un gradiente di pressione elevato lungo il percorso di flusso?', action: 'Valuta con il costruttore stampo l’iniezione in più punti; la fonte la indica solo per termoplastici non rinforzati. Nessuna modifica automatica.', domain: 'mold', order: 3, source: BASF, sourceReference: '§23, PDF/stampata p. 62', materialLimit: 'BASF: iniezione in più punti consigliata solo per termoplastici non rinforzati.' }),
+  verifiedCause({ id: 'demolded-too-hot', title: 'Estrazione a temperatura troppo alta (raffreddamento breve)', description: 'BASF §23: il pezzo si deforma dopo l’estrazione se raffreddamento troppo breve; da verificare anche trattenimento o controsformo.', questionId: 'demolded-too-hot', question: 'Il pezzo viene estratto ancora troppo caldo rispetto al riferimento di processo e la deformazione compare o aumenta dopo l’estrazione?', action: 'Valuta un tempo di raffreddamento più lungo e verifica che il pezzo non sia trattenuto o in controsformo (negative draft).', domain: 'process', order: 4, source: BASF, sourceReference: '§23, PDF/stampata p. 62', materialLimit: 'Nessun limite per materiale indicato dalla fonte; tempo di raffreddamento senza valori.' }),
+  verifiedCause({ id: 'warpage-prone-material', title: 'Materiale con forte tendenza alla deformazione', description: 'BASF §23: materiali con minore differenza di ritiro longitudinale/trasversale (es. blend con fase amorfa) deformano meno.', questionId: 'material-warpage-tendency', question: 'La scheda tecnica del grade in uso indica una differenza marcata tra ritiro longitudinale e trasversale?', action: 'Confronta il grade con la sua scheda tecnica; la fonte cita materiali a bassa deformazione come alternativa. La scelta del materiale resta una decisione da validare.', domain: 'material', order: 5, source: BASF, sourceReference: '§23, PDF/stampata p. 62', materialLimit: 'BASF non indica quali grade siano a bassa deformazione tra i materiali dell’app.' }),
+  verifiedCause({ id: 'fiber-orientation-variation', title: 'Orientamento delle fibre di vetro variabile tra le zone', description: 'BASF §23: per termoplastici rinforzati, deviazioni del flusso, fine flusso, weld line e gate cambiano l’orientamento.', questionId: 'fiber-orientation-changes', question: 'Il materiale è rinforzato con fibra di vetro e una simulazione o analisi del flusso indica orientamento variabile tra le zone?', action: 'Valuta con simulazione le regole BASF di gating: direzione di flusso uniforme, gate nel senso della lunghezza, niente nervature perpendicolari al flusso, fine flusso in angolo. Modifiche allo stampo non automatiche.', domain: 'mold', order: 6, source: BASF, sourceReference: '§23, PDF/stampata p. 62', materialLimit: 'BASF: solo termoplastici rinforzati con fibra di vetro.' }),
+]
+const weld = [
+  verifiedCause({ id: 'cold-melt-fronts', title: 'Fronti di flusso troppo freddi nella zona di giunzione', description: 'BASF §1: con temperatura e pressione troppo basse la pelle più fredda non aderisce alla parete e forma una tacca; può peggiorare le proprietà meccaniche.', questionId: 'weld-cold-fronts', question: 'Una misura o un dato di processo indica temperatura o pressione troppo basse dove i fronti si incontrano?', action: 'Valuta, una variabile alla volta e verificando l’effetto: temperatura melt, commutazione a holding poco prima del riempimento volumetrico, velocità d’iniezione (solo senza problemi di sfiato nella zona).', domain: 'process', order: 1, source: BASF, sourceReference: '§1, PDF/stampata p. 4', materialLimit: 'BASF: più evidente in parti scure o trasparenti lucide, con fibra di vetro o pigmenti effetto; nessun valore per grade.' }),
+  verifiedCause({ id: 'weld-venting', title: 'Sfiati insufficienti o ostruiti nella zona di giunzione', description: 'BASF §1: con problemi di sfiato nella zona la velocità va ridotta e gli sfiati puliti o migliorati.', questionId: 'weld-venting-problem', question: 'Gli sfiati nella zona della weld line risultano ostruiti o insufficienti?', action: 'Pulisci o migliora gli sfiati nella zona; con problemi di sfiato non aumentare la velocità d’iniezione (BASF la indica da ridurre).', domain: 'mold', order: 2, source: BASF, sourceReference: '§1, PDF/stampata p. 4', materialLimit: 'Nessun limite per materiale indicato dalla fonte.' }),
+  verifiedCause({ id: 'weld-gate-or-geometry', title: 'Gate o geometria che generano la giunzione', description: 'BASF §1 (figure pp. 5–6): più punti di iniezione, lunghezze di flusso diverse, alimentazione da lati opposti, cambi di spessore e fori; una weld line è spesso inevitabile.', questionId: 'weld-geometry-cause', question: 'La weld line coincide con un foro, più punti di iniezione, alimentazione da lati opposti o un cambio di spessore?', action: 'Spostare la linea richiede modifiche di gate o spessori: la fonte indica prima uno studio moldflow, con il costruttore stampo. Nessuna modifica automatica.', domain: 'mold', order: 3, source: BASF, sourceReference: '§1, PDF/stampata p. 4; figure pp. 5–6', materialLimit: 'Nessun limite per materiale indicato dalla fonte.' }),
+]
+const jetting = [
+  verifiedCause({ id: 'jetting-gate-design', title: 'Posizione o forma del gate non adatte', description: 'BASF §7: il melt a velocità elevata entra in una sezione ampia senza ostacoli e forma un getto che aderisce male al melt successivo.', questionId: 'jetting-gate-design', question: 'Il melt esce dal gate in una cavità libera, senza ostacolo vicino al gate o con transizione gate-pezzo non raccordata?', action: 'Valuta con il costruttore stampo: gate che faccia urtare il melt contro un ostacolo, sezione del gate più grande, raccordo arrotondato gate-pezzo.', domain: 'mold', order: 1, source: BASF, sourceReference: '§7, PDF/stampata p. 22; figure pp. 23–25', materialLimit: 'Nessun limite per materiale indicato dalla fonte.' }),
+  verifiedCause({ id: 'jetting-fill-conditions', title: 'Condizioni di riempimento iniziale sfavorevoli', description: 'BASF §7: la fonte cita velocità e temperatura melt, senza valori.', questionId: 'jetting-process-conditions', question: 'Il riempimento iniziale risulta troppo veloce o il melt troppo freddo rispetto al riferimento di processo?', action: 'Valuta di ridurre la velocità d’iniezione e/o aumentare la temperatura melt, verificando l’effetto. Nessuna percentuale o correzione automatica.', domain: 'process', order: 2, source: BASF, sourceReference: '§7, PDF/stampata p. 22', materialLimit: 'Nessun limite per materiale indicato dalla fonte; finestra del grade da verificare.' }),
+  verifiedCause({ id: 'jetting-thickness-jump', title: 'Cambi bruschi di spessore lungo il percorso di flusso', description: 'BASF §7: progetto del pezzo non adatto, ad esempio salti di spessore.', questionId: 'jetting-thickness-jump', question: 'Lungo il percorso dopo il gate ci sono cambi bruschi di spessore?', action: 'Valuta con il progettista di evitare i salti di spessore: intervento di design, non automatico.', domain: 'mold', order: 3, source: BASF, sourceReference: '§7, PDF/stampata p. 22', materialLimit: 'Nessun limite per materiale indicato dalla fonte.' }),
+]
+const splay = [
+  verifiedCause({ id: 'residual-moisture', title: 'Umidità residua del granulo', description: 'BASF §16: il vapore forma bolle che scoppiano nel riempimento e restano in superficie; striature paraboliche con la punta nel senso del flusso.', questionId: 'moisture-above-limit', question: 'L’umidità misurata del granulo supera il limite del prodotto o l’essiccatore risulta non funzionante?', action: 'Misura l’umidità, essica sotto il limite indicato per il prodotto e verifica l’essiccatore. Il limite viene dalla scheda del grade, non dall’app.', domain: 'material', order: 1, source: BASF, sourceReference: '§16, PDF/stampata p. 46', materialLimit: 'Il limite di umidità dipende dal prodotto: non indicato dalla fonte per PP, ABS, PC, PA6, PA66.' }),
+  verifiedCause({ id: 'mold-water-leak', title: 'Perdita d’acqua del circuito di temperatura nella cavità', description: 'BASF §16: stampo termoregolato ad acqua con perdita nella cavità.', questionId: 'mold-coolant-leak-found', question: 'È stata riscontrata una perdita d’acqua del circuito di temperatura verso la cavità?', action: 'Fai riparare tutte le perdite; la depressione sui regolatori di temperatura è indicata solo come soluzione temporanea.', domain: 'mold', order: 2, source: BASF, sourceReference: '§16, PDF/stampata p. 46', materialLimit: 'Nessun limite per materiale indicato dalla fonte.' }),
+  verifiedCause({ id: 'hopper-zone-condensation', title: 'Condensa per zona sotto la tramoggia troppo fredda', description: 'BASF §16: la temperatura nella zona di alimentazione è troppo bassa e si forma condensa.', questionId: 'hopper-zone-too-cold', question: 'La temperatura della zona sotto la tramoggia risulta troppo bassa, con condensa visibile?', action: 'Valuta di aumentare la temperatura del cilindro sotto la tramoggia, entro la finestra del materiale.', domain: 'process', order: 3, source: BASF, sourceReference: '§16, PDF/stampata p. 46', materialLimit: 'Finestra di temperatura del materiale non indicata dalla fonte.' }),
+  verifiedCause({ id: 'local-friction', title: 'Attrito localizzato in sezioni di flusso ridotte (striature argentee)', description: 'BASF §18: le striature argentee derivano di norma da attrito localizzato in sezioni ridotte o attorno a ostacoli; distinte dall’umidità (§16).', questionId: 'local-friction-silver-streaks', question: 'Le striature argentee sono limitate a punti con sezione di flusso ridotta o attorno a ostacoli?', action: 'Controlla le sezioni di gate, sprue e hot runner e ottimizza velocità e profilo di iniezione; non applicare i rimedi dell’umidità.', domain: 'mold', order: 4, source: BASF, sourceReference: '§18, PDF/stampata p. 52', materialLimit: 'Nessun limite per materiale indicato dalla fonte.' }),
+]
+
 const partialSources = {
   tpu: { publisher: 'Covestro', title: 'Tips for Defect-Free Injection Molding of TPU', reference: 'PDF p. 3 / stampate pp. 4–5', supports: 'Indice e categorie difetto nel TPU', limit: 'TPU only; non trasferire a PP/ABS/PC/PA6/PA66' },
   process: { publisher: 'Covestro', title: 'Processing of TPU by Injection Molding', reference: '§3.2.3 PDF/stampata p. 14', supports: 'Burn/venting nel TPU', limit: 'TPU only; non trasferire ai materiali target' },
@@ -138,11 +199,11 @@ export const DEFECT_CATALOG: readonly DefectCatalogEntry[] = [
   {
     id: 'sink', legacyIds: ['sink-mark', 'sink_mark', 'sink_marks', 'ritiro', 'RITIRO', 'affossamento', "segni d'affondamento"], nameIt: 'Affossamenti / Sink marks', synonymsIt: ['Sink', 'Segni di ritiro'], semanticCautions: ['Vuoti/bolle/porosità interni sono schede correlate ma distinte; una depressione superficiale non dimostra una cavità interna.'], description: 'Depressione superficiale da distinguere da vuoto interno e peso fuori specifica.', symptoms: ['Depressione vicino a nervature/sezioni spesse', 'Comparsa immediata o post-ejection da registrare'], severityCriteria: genericSeverity, diagnosticQuestions: questionsForCauses(sink), probableCauses: sink, orderedActions: sink, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§5 PDF/stampata p. 14; figure PDF pp. 15–17', supports: 'Ritiro locale, holding e casi geometrici', limit: 'Esempi Ultramid rinforzato, non tutti i grade; niente delta pack universale' }], verificationStatus: 'partial', automationStatus: 'manual', correctionId: null,
   },
-  pending({ id: 'warpage', legacyIds: ['deformazione', 'deformazioni', 'deformation', 'DEFORMAZIONE', 'imbarcamento', 'imbarcamento centrale'], nameIt: 'Imbarcamento / Warpage', synonymsIt: ['Deformazione'], description: 'Deviazione della forma o dimensione dopo espulsione/condizionamento.', symptoms: ['Deviazione dimensionale misurabile', 'Differenze tra lati o cavità'], diagnosticQuestions: [{ id: 'deviation-measured', text: 'Quale quota/direzione devia e quando è stata misurata?' }, { id: 'side-cavity-difference', text: 'È stata verificata differenza tra lati o cavità?' }], verificationStatus: 'partial', sources: [partialSources.tpu] }),
-  pending({ id: 'weld_line', legacyIds: ['linea_giunzione', 'linea di giunzione', 'linea di saldatura', 'weld line', 'linea di giunzione debole'], nameIt: 'Linea di giunzione / Weld line', description: 'Segno o discontinuità dove si incontrano fronti di flusso; distinguere esito estetico e resistenza.', symptoms: ['Linea tra due fronti', 'Eventuale debolezza meccanica da prova separata'], diagnosticQuestions: [{ id: 'strength-measured', text: 'È solo estetica o la resistenza è stata misurata?' }, { id: 'location-vs-gate', text: 'Dove si trova rispetto a gate e ostacoli?' }], semanticCautions: ['Non confondere con giunzione_stamp/mold mismatch, guasto di accoppiamento dello stampo.'] }),
+  causeEntry({ id: 'warpage', legacyIds: ['deformazione', 'deformazioni', 'deformation', 'DEFORMAZIONE', 'imbarcamento', 'imbarcamento centrale'], nameIt: 'Imbarcamento / Warpage', synonymsIt: ['Deformazione'], description: 'Il pezzo si discosta dalla forma voluta (torsione, ondulazione, deviazione angolare) per ritiro differenziale tra zone.', symptoms: ['Deviazione dimensionale misurabile', 'Differenze tra lati o cavità'], contextQuestions: [{ id: 'deviation-measured', text: 'Quale quota/direzione devia e quando è stata misurata?' }, { id: 'side-cavity-difference', text: 'È stata verificata differenza tra lati o cavità?' }], causes: warpage, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§23 PDF/stampata p. 62; figura p. 63', supports: 'Cause e rimedi del warpage: temperature stampo, spessori, gradiente di pressione, raffreddamento, materiale, orientamento fibre', limit: `${BASF_SCOPE} Alcuni rimedi sono indicati solo per non rinforzati o solo per fibra di vetro.` }, partialSources.tpu] }),
+  causeEntry({ id: 'weld_line', legacyIds: ['linea_giunzione', 'linea di giunzione', 'linea di saldatura', 'weld line', 'linea di giunzione debole'], nameIt: 'Linea di giunzione / Weld line', description: 'Linea simile a graffio o tacca dove si incontrano due fronti di flusso; distinguere esito estetico e resistenza.', symptoms: ['Linea tra due fronti', 'Eventuale debolezza meccanica da prova separata'], semanticCautions: ['Non confondere con giunzione_stamp/mold mismatch, guasto di accoppiamento dello stampo.', 'Una weld line è spesso inevitabile (BASF §1): la presenza da sola non indica un errore di processo.'], contextQuestions: [{ id: 'strength-measured', text: 'È solo estetica o la resistenza è stata misurata?' }, { id: 'location-vs-gate', text: 'Dove si trova rispetto a gate e ostacoli?' }], causes: weld, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§1 PDF/stampata p. 4; figure pp. 5–7', supports: 'Descrizione, cause geometriche e rimedi di processo/stampo', limit: `${BASF_SCOPE} Effetto sulla resistenza non quantificato.` }] }),
   pending({ id: 'flow_marks', legacyIds: ['linea_flusso', 'linee di flusso', 'flow lines', 'flow marks', 'flowline', 'striature di flusso'], nameIt: 'Linee di flusso / Flow marks', description: 'Bande o differenze superficiali associate al percorso del fronte.', symptoms: ['Bande o variazione di lucentezza lungo il flusso'], diagnosticQuestions: [{ id: 'follows-gate-or-section', text: 'Seguono gate o cambi sezione?' }, { id: 'distinct-from-weld-jetting-splay', text: 'Sono distinte da weld line, jetting e splay?' }] }),
-  pending({ id: 'jetting', legacyIds: ['getto', 'serpentina', 'jetting'], nameIt: 'Jetting', description: 'Traccia sinuosa da verificare come possibile getto libero originato al gate.', symptoms: ['Traccia sinuosa presso gate'], diagnosticQuestions: [{ id: 'starts-at-gate', text: 'La traccia nasce al gate?' }, { id: 'first-fill-phase-only', text: 'È limitata alla prima fase di riempimento?' }] }),
-  pending({ id: 'splay', legacyIds: ['striature', 'striature argentate', 'striature da umidità', 'silver streaks'], nameIt: 'Striature argentate / Splay', synonymsIt: ['Splay'], description: 'Striature superficiali da distinguere per causa prima di intervenire.', symptoms: ['Filamenti argentati nella direzione del flusso'], diagnosticQuestions: [{ id: 'persists-after-documented-drying', text: 'Persistono dopo essiccazione documentata?' }, { id: 'all-cavities-or-single-point', text: 'Coinvolgono tutte le cavità o un punto?' }] }),
+  causeEntry({ id: 'jetting', legacyIds: ['getto', 'serpentina', 'jetting'], nameIt: 'Jetting', description: 'Traccia sinuosa, spesso ruvida o opaca, che parte dal gate: getto di melt in una cavità libera.', symptoms: ['Traccia sinuosa presso gate', 'Possibile adesione debole al melt successivo e riduzione di resistenza'], contextQuestions: [{ id: 'starts-at-gate', text: 'La traccia nasce al gate?' }, { id: 'first-fill-phase-only', text: 'È limitata alla prima fase di riempimento?' }], causes: jetting, sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§7 PDF/stampata p. 22; figure pp. 23–25', supports: 'Descrizione, cause e rimedi di gate, processo e progetto', limit: `${BASF_SCOPE} Velocità e temperatura senza valori.` }] }),
+  causeEntry({ id: 'splay', legacyIds: ['striature', 'striature argentate', 'striature da umidità', 'silver streaks'], nameIt: 'Striature argentate / Splay', synonymsIt: ['Splay'], semanticCautions: ['Striature da umidità (BASF §16) e da attrito localizzato (§18) sono fenomeni distinti; possono coesistere su zone o segni diversi.'], description: 'Striature superficiali argentee: distinguere umidità da attrito localizzato prima di intervenire.', symptoms: ['Filamenti argentati nella direzione del flusso', 'Striature paraboliche con la punta nel senso del flusso (umidità)'], contextQuestions: [{ id: 'persists-after-documented-drying', text: 'Persistono dopo essiccazione documentata?' }, { id: 'all-cavities-or-single-point', text: 'Coinvolgono tutte le cavità o un punto?' }, { id: 'parabolic-streaks-flow-direction', text: 'Le striature sono allungate, paraboliche, con la punta nel senso del flusso?' }], causes: splay, distinctPhenomena: [{ causeIds: ['residual-moisture', 'local-friction'], discriminatingCheck: 'Osserva forma e posizione: striature paraboliche con la punta nel senso del flusso su più zone (umidità, BASF §16) oppure argentee limitate a sezioni di flusso ridotte o a ostacoli (attrito, BASF §18). Se riguardano zone o segni diversi, segna un pin per ciascuno.' }], sources: [{ publisher: 'BASF', title: 'Injection-Molding Problems in Engineering Thermoplastics', reference: '§16 PDF/stampata p. 46; §18 PDF/stampata p. 52', supports: 'Moisture streaks (umidità, perdite stampo, condensa) e silver streaks da attrito', limit: `${BASF_SCOPE} Limiti di umidità dipendono dal prodotto.` }] }),
   pending({ id: 'voids', legacyIds: ['voids', 'bolle_aria', 'bolle', 'vuoti', 'porosità', 'poros'], nameIt: 'Vuoti, bolle e porosità', description: 'Cavità interne o bolle; mantenere distinto da sink superficiale.', symptoms: ['Vuoto interno o bolla superficiale'], diagnosticQuestions: [{ id: 'internal-or-surface', text: 'È una cavità interna o una bolla superficiale?' }, { id: 'thick-center-or-gate', text: 'È al centro di una sezione spessa o presso gate?' }] }),
   pending({ id: 'air_trap', legacyIds: ['sfiato', 'sfiati', 'air trap', 'linee aria', 'soffiature', 'aria intrappolata'], nameIt: 'Intrappolamento aria / Sfiato', description: 'Possibile condizione da correlare con burn/short shot, non sinonimo automatico.', symptoms: ['Difetto in fine riempimento o zona chiusa'], diagnosticQuestions: [{ id: 'vent-obstruction-observed', text: 'È stato osservato uno sfiato ostruito?' }, { id: 'air-pocket-verified', text: 'Il difetto coincide con una tasca d’aria verificata?' }], verificationStatus: 'partial', sources: [partialSources.process] }),
   pending({ id: 'contamination', legacyIds: ['inclusioni', 'inclusione', 'contaminazione', 'contaminazioni', 'particelle estranee'], nameIt: 'Contaminazione / Inclusioni', description: 'Particelle o materiale estraneo da distinguere da degradazione e difetto cromatico.', symptoms: ['Particella visibile o variazione cromatica locale'], diagnosticQuestions: [{ id: 'particle-identified', text: 'È stata identificata una particella?' }, { id: 'recurs-with-lot-or-machine', text: 'Ricorre con lotto, tramoggia o macchina?' }] }),
@@ -196,25 +257,52 @@ export const RETIRED_QUESTION_IDS: Readonly<Record<string, Readonly<Record<strin
   sink: { 'gate-open-measured': 'Domanda sostituita: un “Sì” indicava solo la misura eseguita, non la condizione.' },
 }
 
+// Mappa storica esplicita e immutabile: ID vecchio (prefisso della scheda) → ID attuale della stessa domanda.
+const LEGACY_QUESTION_ID_MAP: Readonly<Record<string, Readonly<Record<string, string>>>> = Object.freeze({
+  warpage: Object.freeze({ 'warpage-q1': 'warpage.deviation-measured', 'warpage-q2': 'warpage.side-cavity-difference' }),
+  weld_line: Object.freeze({ 'weld_line-q1': 'weld_line.strength-measured', 'weld_line-q2': 'weld_line.location-vs-gate' }),
+  flow_marks: Object.freeze({ 'flow_marks-q1': 'flow_marks.follows-gate-or-section', 'flow_marks-q2': 'flow_marks.distinct-from-weld-jetting-splay' }),
+  jetting: Object.freeze({ 'jetting-q1': 'jetting.starts-at-gate', 'jetting-q2': 'jetting.first-fill-phase-only' }),
+  splay: Object.freeze({ 'splay-q1': 'splay.persists-after-documented-drying', 'splay-q2': 'splay.all-cavities-or-single-point' }),
+  voids: Object.freeze({ 'voids-q1': 'voids.internal-or-surface', 'voids-q2': 'voids.thick-center-or-gate' }),
+  air_trap: Object.freeze({ 'air_trap-q1': 'air_trap.vent-obstruction-observed', 'air_trap-q2': 'air_trap.air-pocket-verified' }),
+  contamination: Object.freeze({ 'contamination-q1': 'contamination.particle-identified', 'contamination-q2': 'contamination.recurs-with-lot-or-machine' }),
+  degradation: Object.freeze({ 'degradation-q1': 'degradation.diffuse-or-localized', 'degradation-q2': 'degradation.after-stop-or-lot' }),
+  cold_slug: Object.freeze({ 'cold_slug-q1': 'cold_slug.near-gate', 'cold_slug-q2': 'cold_slug.cold-well-checked' }),
+  surface_finish: Object.freeze({ 'surface_finish-q1': 'surface_finish.gloss-measured', 'surface_finish-q2': 'surface_finish.texture-or-front-coincidence' }),
+  surface_roughness: Object.freeze({ 'surface_roughness-q1': 'surface_roughness.particle-pore-or-texture', 'surface_roughness-q2': 'surface_roughness.varies-between-cavities' }),
+  weight_out_of_spec: Object.freeze({ 'weight_out_of_spec-q1': 'weight_out_of_spec.target-and-tolerance', 'weight_out_of_spec-q2': 'weight_out_of_spec.measurement-conditioning' }),
+  dimensions_out_of_tolerance: Object.freeze({ 'dimensions_out_of_tolerance-q1': 'dimensions_out_of_tolerance.dimension-tolerance-datum', 'dimensions_out_of_tolerance-q2': 'dimensions_out_of_tolerance.measured-when-conditioning' }),
+  ejection_scuff: Object.freeze({ 'ejection_scuff-q1': 'ejection_scuff.adheres-to-face', 'ejection_scuff-q2': 'ejection_scuff.ejector-marks-or-drag' }),
+  delamination: Object.freeze({ 'delamination-q1': 'delamination.layers-separable', 'delamination-q2': 'delamination.materials-additives-known' }),
+  drool_stringing: Object.freeze({ 'drool_stringing-q1': 'drool_stringing.during-decompression-or-opening', 'drool_stringing-q2': 'drool_stringing.hot-runner-or-standard-nozzle' }),
+  fold_marks: Object.freeze({ 'fold_marks-q1': 'fold_marks.distinct-from-weld', 'fold_marks-q2': 'fold_marks.location-vs-gate' }),
+  vacuum_adhesion: Object.freeze({ 'vacuum_adhesion-q1': 'vacuum_adhesion.retaining-face', 'vacuum_adhesion-q2': 'vacuum_adhesion.venting-behind-surface-checked' }),
+  mold_mismatch: Object.freeze({ 'mold_mismatch-q1': 'mold_mismatch.gap-parallelism-checked', 'mold_mismatch-q2': 'mold_mismatch.press-alarm-or-clamp-limit' }),
+})
+
 export interface MigratedAnswers {
   answers: Record<string, 'yes' | 'no' | 'unknown'>
   legacyAnswers: Record<string, 'yes' | 'no' | 'unknown'>
   retiredQuestionIds: string[]
 }
 
-// Le risposte per ID pending posizionali sono rimappate alla stessa domanda originale; quelle ritirate non sono trasferite.
-export function migrateStoredAnswers(defectId: string, stored: Record<string, 'yes' | 'no' | 'unknown'>): MigratedAnswers {
-  const entry = resolveDefectCatalogEntry(defectId)
+// Solo la mappa storica esplicita converte i vecchi ID; ogni altro ID non riconosciuto resta in legacyAnswers.
+export function migrateStoredAnswers(
+  defectId: string,
+  stored: Record<string, 'yes' | 'no' | 'unknown'>,
+  entry: DefectCatalogEntry | null = resolveDefectCatalogEntry(defectId),
+): MigratedAnswers {
   const result: MigratedAnswers = { answers: {}, legacyAnswers: {}, retiredQuestionIds: [] }
   if (!entry) return { ...result, legacyAnswers: { ...stored }, retiredQuestionIds: Object.keys(stored) }
   const current = new Set(entry.diagnosticQuestions.map((question) => question.id))
-  const pending = entry.probableCauses.length === 0
+  const table = LEGACY_QUESTION_ID_MAP[entry.id] ?? {}
+  // Le risposte con ID attuale prevalgono su quelle storiche della stessa domanda.
+  for (const [key, value] of Object.entries(stored)) if (current.has(key)) result.answers[key] = value
   for (const [key, value] of Object.entries(stored)) {
-    const positional = pending ? /^(?:catalog-question-(\d+)|[a-z_]+-q(\d+))$/.exec(key) : null
-    const position = positional ? (positional[1] !== undefined ? Number(positional[1]) : Number(positional[2]) - 1) : -1
-    const mapped = entry.diagnosticQuestions[position]?.id
-    if (current.has(key)) result.answers[key] = value
-    else if (mapped) result.answers[mapped] = value
+    if (current.has(key)) continue
+    const mapped = Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined
+    if (mapped && current.has(mapped) && !(mapped in result.answers)) result.answers[mapped] = value
     else {
       result.legacyAnswers[key] = value
       result.retiredQuestionIds.push(key)

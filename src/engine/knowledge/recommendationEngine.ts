@@ -1,5 +1,5 @@
 import type { Diagnosis, KnowledgeContext, Recommendation, SimilarCase } from './types'
-import { getContextualDefectProfile, detectAnswerConflicts } from './defectContext'
+import { getContextualDefectProfile, detectClarificationRequests } from './defectContext'
 
 export async function recommend(
   diagnosis: Diagnosis[],
@@ -35,14 +35,14 @@ export async function recommend(
         },
       })
     }
-    detectAnswerConflicts(profile.id, context.defectContext?.answers).forEach((conflict) => {
+    detectClarificationRequests(profile.id, context.defectContext?.answers).forEach((conflict) => {
       recommendations.push({
-        id: `defect-conflict:${conflict.causeIds.join('+')}`,
+        id: `defect-clarification:${conflict.causeIds.join('+')}`,
         target: conflict.questionIds[0],
         action: 'investigate',
-        reason: `${conflict.message} Controllo discriminante: ${conflict.discriminatingCheck}`,
+        reason: `${conflict.message} Se riguardano lo stesso segno, controllo discriminante: ${conflict.discriminatingCheck}`,
         priority: 90,
-        metadata: { provenance: 'answer-conflict', catalogId: profile.id, questionIds: conflict.questionIds, automaticCorrection: false },
+        metadata: { provenance: 'clarification-request', catalogId: profile.id, questionIds: conflict.questionIds, automaticCorrection: false },
       })
     })
   }

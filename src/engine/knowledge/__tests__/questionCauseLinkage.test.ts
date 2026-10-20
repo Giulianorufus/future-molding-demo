@@ -48,9 +48,9 @@ describe('question-to-cause linkage', () => {
         expect(cause?.question).toBe(question.text)
       }
     }
-    const jetting = resolveDefectCatalogEntry('jetting')!
-    expect(jetting.diagnosticQuestions.map((q) => q.id)).toEqual(['jetting.starts-at-gate', 'jetting.first-fill-phase-only'])
-    expect(jetting.diagnosticQuestions.every((q) => q.causeId === null)).toBe(true)
+    const pendingEntry = resolveDefectCatalogEntry('cold_slug')!
+    expect(pendingEntry.diagnosticQuestions.map((q) => q.id)).toEqual(['cold_slug.near-gate', 'cold_slug.cold-well-checked'])
+    expect(pendingEntry.diagnosticQuestions.every((q) => q.causeId === null)).toBe(true)
   })
 })
 

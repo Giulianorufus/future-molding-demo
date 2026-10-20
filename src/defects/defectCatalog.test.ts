@@ -5,8 +5,8 @@ describe('unified defect catalog', () => {
   test('contains 24 unique canonical IDs and no alias collisions', () => {
     expect(DEFECT_CATALOG).toHaveLength(24)
     expect(new Set(DEFECT_CATALOG.map((entry) => entry.id)).size).toBe(24)
-    expect(DEFECT_CATALOG.filter((entry) => entry.verificationStatus === 'partial')).toHaveLength(10)
-    expect(DEFECT_CATALOG.filter((entry) => entry.verificationStatus === 'unverified')).toHaveLength(14)
+    expect(DEFECT_CATALOG.filter((entry) => entry.verificationStatus === 'partial')).toHaveLength(13)
+    expect(DEFECT_CATALOG.filter((entry) => entry.verificationStatus === 'unverified')).toHaveLength(11)
     for (const entry of DEFECT_CATALOG) {
       expect(entry.nameIt).toBeTruthy()
       expect(entry.description).toBeTruthy()
@@ -40,6 +40,10 @@ describe('unified defect catalog', () => {
     expect(getAutomaticDefectCorrection('jetting', 'medium')).toBeNull()
     expect(mapLegacyDefectId('jetting')).toBeNull()
     expect(DEFECT_CATALOG.find((entry) => entry.id === 'jetting')).toMatchObject({
+      automationStatus: 'disabled',
+      correctionId: null,
+    })
+    expect(DEFECT_CATALOG.find((entry) => entry.id === 'cold_slug')).toMatchObject({
       automationStatus: 'disabled',
       correctionId: null,
       probableCauses: [],

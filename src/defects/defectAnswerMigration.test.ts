@@ -1,6 +1,6 @@
 ﻿import { RETIRED_QUESTION_IDS, DEFECT_CATALOG, migrateStoredAnswers, resolveDefectCatalogEntry } from './defectCatalog'
 import { migrateDefectsState } from '../stores/defectsStore'
-import { detectAnswerConflicts } from '../engine/knowledge/defectContext'
+import { detectClarificationRequests } from '../engine/knowledge/defectContext'
 import { diagnose } from '../engine/knowledge/diagnosisEngine'
 import { recommend } from '../engine/knowledge/recommendationEngine'
 import type { KnowledgeContext } from '../engine/knowledge/types'
@@ -18,10 +18,46 @@ const contextFor = (defectId: string, answers: Answers): KnowledgeContext => ({
 })
 
 describe('stored answers with legacy question IDs', () => {
-  test('positional pending IDs map to the same original question; unknown keys are kept aside', () => {
-    const migrated = migrateStoredAnswers('jetting', { 'jetting-q1': 'yes', 'catalog-question-1': 'no', 'other-key': 'yes' })
+  test('the explicit historical map converts the scheda-prefixed IDs; unprefixed or unknown keys stay in legacyAnswers', () => {
+    const migrated = migrateStoredAnswers('jetting', { 'jetting-q1': 'yes', 'jetting-q2': 'no', 'catalog-question-1': 'no', 'other-key': 'yes' })
     expect(migrated.answers).toEqual({ 'jetting.starts-at-gate': 'yes', 'jetting.first-fill-phase-only': 'no' })
-    expect(migrated.legacyAnswers).toEqual({ 'other-key': 'yes' })
+    expect(migrated.legacyAnswers).toEqual({ 'catalog-question-1': 'no', 'other-key': 'yes' })
+  })
+
+  test('an ID prefixed with another scheda is not accepted: warpage-q1 is not a Jetting question', () => {
+    const migrated = migrateStoredAnswers('jetting', { 'warpage-q1': 'yes' })
+    expect(migrated.answers).toEqual({})
+    expect(migrated.legacyAnswers).toEqual({ 'warpage-q1': 'yes' })
+    expect(migrateStoredAnswers('warpage', { 'warpage-q1': 'yes' }).answers).toEqual({ 'warpage.deviation-measured': 'yes' })
+  })
+
+  test('every historical key carries its own scheda prefix and points to a current question of that scheda', () => {
+    for (const entry of DEFECT_CATALOG.filter((item) => !['short_shot', 'burn_mark', 'flash', 'sink'].includes(item.id))) {
+      const probe = Object.fromEntries([1, 2].map((n) => [`${entry.id}-q${n}`, 'yes' as const]))
+      const migrated = migrateStoredAnswers(entry.id, probe)
+      const current = new Set(entry.diagnosticQuestions.map((question) => question.id))
+      for (const id of Object.keys(migrated.answers)) {
+        expect(id.startsWith(`${entry.id}.`)).toBe(true)
+        expect(current.has(id)).toBe(true)
+      }
+      expect(Object.keys(migrated.answers)).toHaveLength(2)
+    }
+  })
+
+  test('the mapping does not depend on question order: reordering or inserting questions changes nothing', () => {
+    const entry = resolveDefectCatalogEntry('jetting')!
+    const stored: Answers = { 'jetting-q1': 'yes', 'jetting-q2': 'no' }
+    const baseline = migrateStoredAnswers('jetting', stored, entry)
+    const reordered = { ...entry, diagnosticQuestions: [...entry.diagnosticQuestions].reverse() }
+    const inserted = { ...entry, diagnosticQuestions: [{ id: 'jetting.new-question', text: 'N?', causeId: null }, ...entry.diagnosticQuestions] }
+    expect(migrateStoredAnswers('jetting', stored, reordered)).toEqual(baseline)
+    expect(migrateStoredAnswers('jetting', stored, inserted)).toEqual(baseline)
+  })
+
+  test('if the same question has both an old and a current ID, the current answer wins and the old one is kept aside', () => {
+    const migrated = migrateStoredAnswers('jetting', { 'jetting-q1': 'no', 'jetting.starts-at-gate': 'yes' })
+    expect(migrated.answers).toEqual({ 'jetting.starts-at-gate': 'yes' })
+    expect(migrated.legacyAnswers).toEqual({ 'jetting-q1': 'no' })
   })
 
   test('the combined thermal-damage answer is not transferred to the thermal or shear causes', async () => {
@@ -60,9 +96,9 @@ describe('stored answers with legacy question IDs', () => {
 })
 
 describe('diesel, thermal degradation and shear', () => {
-  test('a single declared phenomenon raises no conflict', () => {
-    expect(detectAnswerConflicts('burn_mark', { 'diesel-localized-black-mark': 'yes', 'venting-obstruction': 'yes' })).toEqual([])
-    expect(detectAnswerConflicts('burn_mark', { 'thermal-degradation-evidence': 'yes', 'shear-streaks': 'no' })).toEqual([])
+  test('a single declared phenomenon raises no clarification request', () => {
+    expect(detectClarificationRequests('burn_mark', { 'diesel-localized-black-mark': 'yes', 'venting-obstruction': 'yes' })).toEqual([])
+    expect(detectClarificationRequests('burn_mark', { 'thermal-degradation-evidence': 'yes', 'shear-streaks': 'no' })).toEqual([])
   })
 
   test.each([
@@ -70,7 +106,7 @@ describe('diesel, thermal degradation and shear', () => {
     [{ 'diesel-localized-black-mark': 'yes', 'shear-streaks': 'yes' }, ['compressed-air', 'high-shear-streaks']],
     [{ 'thermal-degradation-evidence': 'yes', 'shear-streaks': 'yes' }, ['thermal-degradation', 'high-shear-streaks']],
   ] as [Answers, string[]][])('contradictory answers %#: flagged with a discriminating check, no cause is excluded', async (answers, causeIds) => {
-    const conflicts = detectAnswerConflicts('burn_mark', answers)
+    const conflicts = detectClarificationRequests('burn_mark', answers)
     expect(conflicts).toHaveLength(1)
     expect(conflicts[0].causeIds).toEqual(causeIds)
     expect(conflicts[0].discriminatingCheck).toMatch(/BASF §3/)
@@ -80,8 +116,10 @@ describe('diesel, thermal degradation and shear', () => {
     const declared = diagnosis.filter((item) => item.metadata?.provenance === 'operator-declared').map((item) => item.id.replace('defect-cause:', ''))
     expect(declared).toEqual(causeIds)
     const recommendations = await recommend(diagnosis, context, [])
-    const conflictRec = recommendations.find((item) => item.id.startsWith('defect-conflict:'))
-    expect(conflictRec?.reason).toContain('Controllo discriminante')
+    const conflictRec = recommendations.find((item) => item.id.startsWith('defect-clarification:'))
+    expect(conflictRec?.reason).toContain('indica se riguardano zone o segni diversi')
+    expect(conflictRec?.reason).toContain('Entrambe le ipotesi restano aperte')
+    expect(conflictRec?.reason).not.toMatch(/incompatibil/i)
     expect(conflictRec?.metadata?.automaticCorrection).toBe(false)
   })
 })

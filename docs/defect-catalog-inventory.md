@@ -1,8 +1,8 @@
 # Inventario e proposta di catalogo difetti
 
-Stato: inventario tecnico preliminare, non implementato. Non sostituisce le regole in produzione e non certifica completezza. Non aggiunge correzioni automatiche o variazioni percentuali.
+Stato: inventario tecnico con catalogo eseguibile v1 in `src/defects/defectCatalog.ts`. Non sostituisce le regole in produzione e non certifica completezza. Non aggiunge correzioni automatiche o variazioni percentuali.
 
-Esito documentale aggiornato al 2026-10-19: **0 schede validate integralmente per ciascun materiale target, 10 parziali, 14 senza riscontro**. Il file contiene 24 schede. Quattro PDF OEM sono stati scaricati via HTTP (200, Content-Type PDF, firma `%PDF-`) ed estratti con `pypdf` installato solo in `%TEMP%`; nessuna dipendenza app è stata aggiunta. Le schede parziali hanno fonte leggibile ma scope TPU/hot-runner o trasferibilità non dimostrata a tutti i grade. Le schede senza riscontro non hanno una fonte tecnica collegata in questo controllo.
+Esito documentale aggiornato al 2026-10-20: **0 schede validate integralmente per ciascun materiale target, 13 parziali, 11 senza riscontro codificato**. Il file contiene 24 schede. Quattro PDF OEM erano stati scaricati via HTTP (200, Content-Type PDF, firma `%PDF-`) ed estratti con `pypdf` installato solo in `%TEMP%`; il manuale BASF è stato riletto direttamente il 2026-10-20 con lo stesso metodo, senza aggiungere dipendenze all’app. Le schede parziali hanno fonte leggibile ma scope TPU/hot-runner o trasferibilità non dimostrata a tutti i grade. Le schede senza riscontro codificato non hanno cause o azioni nel catalogo; per alcune il manuale BASF ha un capitolo non ancora estratto (vedi tabella).
 
 ## Criteri e stato delle fonti
 
@@ -125,7 +125,7 @@ Le associazioni qui sotto servono a pianificare revisione e compatibilità; non 
 | Imbarcamento | `warpage`, `deformazione`, `deformazioni`, `deformation`, `DEFORMAZIONE`, `Imbarcamento`, `Imbarcamento centrale` | Confermare che deformazione non indichi rottura o difetto geometrico di altro tipo. |
 | Linea di giunzione | `weld_line`, `linea_giunzione`, `Linea di giunzione`, `Linea di giunzione debole`, `Linea di saldatura`, `Linea di giunzione` | Valutare separatamente linea estetica e saldatura strutturalmente debole. |
 | Linee di flusso | `linea_flusso`, `Linee di flusso`, `flow lines`, `flowline`, `Linee di flusso` | Distinguere da weld line, jetting e striature da umidità. |
-| Jetting | `jetting`, `Jetting`, `getto`, `serpentina` | Confermare morfologia/origine al gate prima di applicare controlli di profilo. |
+| Jetting | Parziale | BASF §7, PDF/stampata p. 22 (figure pp. 23–25): 3 cause (gate, condizioni di riempimento, spessori) con rimedi; nessun valore numerico. |
 | Striature/splay | `splay`, `striature`, `Striature`, `Striature argentate`, `Striature (umidità)` | Tenere l’umidità come causa possibile, non assunto diagnostico. |
 | Bolle/vuoti/porosità | `voids`, `bolle_aria`, `Bolle d'aria interne`, `Bolle`, `Vuoti`, `Vuoti/Bolle`, `porosità`, `poros` | Distinguere gas, umidità e vuoto da ritiro con esame del pezzo. |
 | Intrappolamento aria/sfiato | `sfiato`, `air trap`, `linee aria`, `soffiature`, `difetti da sfiato insufficiente` | Correlazione causale con burn/short shot, non sinonimia automatica. |
@@ -152,7 +152,7 @@ Questo inventario non prova che tutte le cause siano coperte né che i sinonimi 
 
 Il catalogo eseguibile è `src/defects/defectCatalog.ts`: contiene 24 ID canonici, nomi, alias legacy, descrizioni, sintomi, criteri gravità 1–3, domande, fonti/limiti e stato di verifica/automazione. La normalizzazione degli alias fallisce esplicitamente in caso di collisione non risolta. La pagina Difetti filtra/mostra tutte le voci; il pin mesh usa l’ID canonico del catalogo.
 
-Copertura attuale: **24 schede selezionabili, 10 parziali, 14 senza riscontro**. Quattro schede (short shot, burn/diesel, flash, sink) hanno cause e azioni BASF lette nel relativo campo dichiarato; le azioni sono condizionali e non validate per ogni grade. Sei schede parziali hanno solo fonte di contesto/scopo TPU o hot-runner e non generano cause/azioni. Le restanti 14 non hanno evidenze OEM acquisite. Le schede senza cause verificate restituiscono solo lo stato documentale nel Knowledge Engine e zero raccomandazioni tecniche.
+Copertura attuale: **24 schede selezionabili, 13 parziali, 11 senza riscontro codificato**. Otto schede (short shot, burn/diesel, flash, sink, warpage, weld line, jetting, splay) hanno cause e azioni BASF lette nel relativo campo dichiarato; le azioni sono condizionali e non validate per ogni grade. Cinque schede parziali (air trap, dimensioni, graffi in estrazione, delaminazione, colature) hanno solo fonti di contesto TPU/hot-runner o un capitolo BASF non ancora codificato e non generano cause/azioni. Le restanti 11 non hanno cause codificate. Le schede senza cause verificate restituiscono solo lo stato documentale nel Knowledge Engine e zero raccomandazioni tecniche.
 
 Automazione: le tre proposte legacy `+10%` Short Shot, `-10%` Burn, `-10%` Flash restano le sole correzioni percentuali disponibili; sono euristiche non validate e la gravità non ne moltiplica il valore. Sink resta manuale. Nessuna voce nuova abilita ricalcolo. `validated` continua a richiedere dati specifici di grado, pressa/vite, limiti, geometria e prova pezzo.
 
@@ -170,28 +170,28 @@ Le 24 schede seguenti documentano il perimetro del catalogo. Causa/azione presen
 | Bruciature / effetto diesel | Parziale | BASF §3, PDF pp. 10–11 / stampate 10–11, letto integralmente; distinto da burning streaks §18, PDF/stampata p. 52. Trasferibilità grade-specifica da verificare. |
 | Bave / flash | Parziale | BASF §9, PDF/stampata p. 28, cause e rimedi alternativi letti integralmente; scelta condizionata alla causa, senza validazione quantitativa per grade. |
 | Segni di ritiro / sink | Parziale | BASF §5, PDF/stampata p. 14, cause e rimedi letti integralmente; figure includono Ultramid rinforzato, non prova per ogni grade. |
-| Imbarcamento / warpage | Parziale | COV-TPU-DEFECTS indicizza una categoria “defects caused by warpage”; nessuna causa/rimedio puntuale verificata. |
-| Linea di giunzione / weld line | Senza riscontro | I risultati “welding” trovati riguardano tecniche di giunzione dei polimeri, non weld lines da stampaggio; esclusi come fonte per questa scheda. |
-| Linee di flusso / flow marks | Senza riscontro | Nessuna fonte OEM specifica acquisita. |
-| Jetting | Senza riscontro | Nessuna fonte OEM specifica acquisita. |
-| Striature argentate / splay | Senza riscontro | Nessuna fonte OEM specifica acquisita. |
-| Vuoti, bolle e porosità | Senza riscontro | Nessuna fonte OEM specifica acquisita; fenomeni mantenuti distinti da sink. |
-| Intrappolamento aria / sfiato | Parziale | COV-TPU-PROCESS supporta il ruolo dello sfiato per burn da aria compressa nel TPU; non documenta tutti gli air trap o le modifiche stampo. |
-| Contaminazione / inclusioni | Senza riscontro | Nessuna fonte OEM specifica acquisita. |
-| Degradazione / bruciatura del materiale | Senza riscontro | La fonte burn consultata parla di aria calda compressa, non prova degradazione del polimero; nessuna evidenza specifica per questa voce. |
-| Cold slug / materiale freddo al gate | Senza riscontro | Nessuna fonte OEM specifica acquisita. |
-| Finitura lucida/opaca e brillantezza | Senza riscontro | L’indice Covestro riporta una categoria “color defects” ma non prova gloss/opacità; nessun supporto sufficiente per la scheda. |
+| Imbarcamento / warpage | Parziale | BASF §23, PDF/stampata p. 62 (figura p. 63): 6 cause con rimedi, alcuni indicati solo per non rinforzati o solo per fibra di vetro; trasferibilità a PP/ABS/PC e a grade specifici non dimostrata. COV-TPU-DEFECTS resta solo un indice. |
+| Linea di giunzione / weld line | Parziale | BASF §1, PDF/stampata p. 4 (figure pp. 5–7): 3 cause (fronti freddi, sfiati, gate/geometria) con rimedi di processo e stampo; la weld line è spesso inevitabile e l’effetto sulla resistenza non è quantificato. I risultati “welding” di giunzione dei polimeri restano esclusi. |
+| Linee di flusso / flow marks | Senza riscontro | Nessuna causa codificata; il manuale BASF ha capitoli affini (§19 Tiger lines, pp. 54–55) non ancora estratti: da non assimilare a flow marks senza lettura. |
+| Jetting | Parziale | BASF §7, PDF/stampata p. 22 (figure pp. 23–25): 3 cause (gate, condizioni di riempimento, spessori) con rimedi; nessun valore numerico. |
+| Striature argentate / splay | Parziale | BASF §16, PDF/stampata p. 46 (umidità, perdita d’acqua dello stampo, condensa) e §18, p. 52 (attrito localizzato, striature argentee); i limiti di umidità dipendono dal prodotto. |
+| Vuoti, bolle e porosità | Senza riscontro | Nessuna causa codificata; il capitolo BASF §12 (pp. 38–39) compare nell’indice del manuale ma non è ancora stato estratto. Mantenuto distinto da sink. |
+| Intrappolamento aria / sfiato | Parziale | COV-TPU-PROCESS supporta il ruolo dello sfiato per burn da aria compressa nel TPU; il capitolo BASF §11 Air entrapment (pp. 34–37) compare nell’indice ma non è stato estratto. Nessuna causa codificata. |
+| Contaminazione / inclusioni | Senza riscontro | Nessuna causa codificata; il capitolo BASF §4 Black specks (pp. 12–13) compare nell’indice ma non è ancora stato estratto. |
+| Degradazione / bruciatura del materiale | Senza riscontro | BASF §18 (p. 52) descrive le burning streaks da degradazione termica e già alimenta due cause della scheda Burn; la scheda dedicata non è ancora codificata. |
+| Cold slug / materiale freddo al gate | Senza riscontro | Nessuna causa codificata; il capitolo BASF §10 (pp. 30–33) compare nell’indice ma non è ancora stato estratto. |
+| Finitura lucida/opaca e brillantezza | Senza riscontro | Nessuna causa codificata; i capitoli BASF §8 Gloss variations (pp. 26–27) e §13 Dull spots (pp. 40–41) compaiono nell’indice ma non sono stati estratti. L’indice Covestro “Color defects” non prova gloss/opacità. |
 | Rugosità anomala / puntinatura | Senza riscontro | L’indice menziona specks/dots in un frammento non verificabile nel contesto del PDF; nessuna causa/rimedio è supportato. |
 | Peso fuori specifica | Senza riscontro | Nessuna fonte OEM specifica acquisita. |
 | Dimensioni fuori tolleranza | Parziale | COV-TPU-DEFECTS ha sezione “Defects in dimensions” a p. 4 nell’indice; cause e azioni specifiche non verificate. |
-| Graffi e difetti di estrazione | Parziale | COV-TPU-DEFECTS ha sezione “Demolding defects” a p. 9 e menziona ejector marks; le cause/rimedi completi non sono stati controllati. |
-| Lineamenti da delaminazione | Parziale | Un estratto COV-TPU-DEFECTS definisce delaminazione come distacco/scagliatura dello strato superficiale, anche localizzata; non supporta le cause elencate né altri materiali. |
+| Graffi e difetti di estrazione | Parziale | COV-TPU-DEFECTS contiene “Demolding defects” (p. 9) e menziona ejector marks; il capitolo BASF §6 (pp. 18–21) compare nell’indice ma non è stato estratto. Nessuna causa codificata. |
+| Lineamenti da delaminazione | Parziale | BASF §2 (p. 8) descrive la delaminazione come distacco degli strati superficiali per shear eccessivo in melt relativamente freddo con stampo freddo; cause e rimedi non ancora codificati. Un estratto COV-TPU-DEFECTS la definisce come distacco/scagliatura dello strato superficiale. |
 | Colature e filamenti in materozza | Parziale | MM-HR-TROUBLE menziona controllo del drooling e contaminazione cavità in un hot-runner troubleshooting guide; non dimostra cause/rimedi generali o filamenti a ugello. |
 | Piegature / fold marks | Senza riscontro | Nessuna fonte OEM specifica acquisita. |
 | Adesione da sottovuoto | Senza riscontro | La sezione generale demolding non prova il meccanismo specifico del vuoto/venting. |
 | Giunzione stampo non chiusa | Senza riscontro | Nessuna fonte OEM specifica acquisita; resta una verifica attrezzatura/sicurezza, non una correzione di processo. |
 
-Conteggio sulle 24 schede effettivamente presenti: **0 verificate integralmente, 10 parziali, 14 senza riscontro in questa ricerca**.
+Conteggio sulle 24 schede effettivamente presenti: **0 verificate integralmente, 13 parziali, 11 senza riscontro codificato**.
 
 ### Tracciabilità delle cause e azioni
 
@@ -199,19 +199,19 @@ Questa matrice specifica cosa è effettivamente sostenuto dalle fonti. Per le pr
 
 | Scheda | Causa supportata dalla fonte | Azione supportata dalla fonte | Cause/azioni della scheda ancora non supportate |
 |---|---|---|---|
-| Mancato riempimento | BASF-IM-THERMOPLASTICS §22, PDF/stampata p. 60: cause nominate includono dose/cushion, temperatura, velocità insufficiente, venting, perdita di pressione e geometria. | La stessa sezione specifica contromisure corrispondenti, fra cui aumentare dose o speed solo per quelle cause, migliorare venting o sezioni di flusso. | Applicabilità a PP/ABS/PC e a grade specifici PA; velocità/range della pressa e design effettivo. |
-| Bruciature / effetto diesel | BASF-IM-THERMOPLASTICS §3, PDF p. 10–11 / stampate pp. 10–11: aria compressa per evacuazione insufficiente, speed alta, vent ostruiti e fronti confluenti. | Ridurre speed se alta, pulire/migliorare vent e rivedere pattern/gate; ridurre clamp solo se il burn è vicino al parting surface e l’aria non esce da lì. | Separare diesel effect da burning streaks §18 (thermal/shear); applicabilità ai singoli materiali target e range macchina. |
-| Bave / flash | BASF-IM-THERMOPLASTICS §9, PDF/stampata p. 28: gap/sealing surfaces, clamp, cavity pressure, viscosità e deformazione stampo sono cause distinte. | La guida associa rimedi diversi alla causa: riparare fit/sealing, intervenire su clamp se insufficiente, V/P/speed se cavity pressure alta, temperatura/residence/drying se viscosità bassa/degradazione. | Trasferibilità al grado e pressa correnti; le alternative non sono cumulative e possono produrre short shot o superare capacità macchina. |
-| Segni di ritiro / sink | BASF-IM-THERMOPLASTICS §5, PDF/stampata p. 14: accumulo di spessore e ritiro locale; compensazione hold insufficiente; può manifestarsi post-ejection. | Hold pressure/time basati su gate-open e misura di peso/pressione; interventi geometrici o di gating solo per le cause corrispondenti. | Limite pressione/grade e applicabilità ai materiali target; nessuna percentuale pack universale è fornita. |
-| Imbarcamento / warpage | [COV-TPU-DEFECTS](https://solutions.covestro.com/-/media/covestro/solution-center/brands/downloads/imported/1557310065.pdf?rev=8ca8c46485944b4c8a18e180678d81fc&hash=8B9BABE43E840D772D229998546E4BBE) indicizza una categoria “defects caused by warpage”; nessun meccanismo causale consultabile. | Nessuna azione verificata. | Raffreddamento, orientamento fibra, pack e geometria restano ipotesi non confermate dalla sezione leggibile. |
-| Linea di giunzione / weld line | Nessuna causa di weld line da stampaggio verificata. Il documento Covestro “Processing of TPU” cita welding come tecnica di giunzione, non come difetto weld-line; è stato escluso. | Nessuna azione verificata. | Tutte le cause/azioni della scheda restano ipotesi. |
+| Mancato riempimento | BASF-IM-THERMOPLASTICS §22, PDF/stampata p. 60: dose/cushion, velocità bassa, restrizioni di flusso, temperatura melt/stampo, sfiati (5 cause codificate). | Verifiche e azioni condizionate alla causa: misura prima di agire, melt prima dello stampo, velocità solo se confermata bassa e nei limiti pressa. | Non codificate: parete sottile o percorso lungo, zona sottile che congela vicino al gate, flowability insufficiente; applicabilità a PP/ABS/PC e a grade PA. |
+| Bruciature / effetto diesel | BASF §3, pp. 10–11 (diesel: aria compressa, sfiati, piano di divisione) e §18, p. 52 (degradazione termica e shear): fenomeni distinti con domande separate. | Controlli sfiati/aria per il diesel; temperatura melt, permanenza e sezioni di flusso per §18; clamp solo vicino al piano di divisione con aria che non esce. Risposte su più fenomeni generano una richiesta di chiarimento, non un’esclusione. | Velocità troppo alta e fronti multipli compaiono solo nelle azioni, senza causa dedicata; applicabilità ai materiali target e range macchina. |
+| Bave / flash | BASF §9, p. 28: gap/superfici di tenuta, flessione stampo, clamp, pressione cavità, viscosità (5 cause codificate). | La guida associa rimedi diversi alla causa; le alternative non sono cumulative. | Trasferibilità al grade e alla pressa; ridurre la velocità può causare short shot. |
+| Segni di ritiro / sink | BASF §5, p. 14: spessore/ritiro locale, holding più breve del gate-open (condizione misurata, non dimostrata come causa), comparsa dopo estrazione. | Misura di gate-open, poi verifica se il sink cambia; interventi geometrici solo con revisione pezzo/stampo. | Non codificate: assenza di melt cushion, perdita di pressione, gate in parete sottile, temperature melt/stampo; nessuna percentuale di pack fornita. |
+| Imbarcamento / warpage | BASF §23, p. 62: temperature stampo, spessori, gradiente di pressione, estrazione a caldo, materiale, orientamento fibre (6 cause). | Rimedi condizionati e spesso limitati a non rinforzati o a fibra di vetro; interventi di design/stampo non automatici. | Valori di temperatura e tempo non indicati; quali grade siano a bassa deformazione non indicato. COV-TPU-DEFECTS non fornisce cause. |
+| Linea di giunzione / weld line | BASF §1, p. 4 (figure pp. 5–6): fronti freddi, sfiati, gate/geometria (3 cause). | Temperatura melt, commutazione a holding, velocità (solo senza problemi di sfiato), pulizia sfiati; spostamento gate solo dopo studio moldflow. | Effetto sulla resistenza non quantificato; la BASF indica una soglia di commutazione numerica che non è stata adottata come parametro. |
 | Linee di flusso / flow marks | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Fronte, temperatura, velocità, gate e finitura restano ipotesi. |
-| Jetting | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Getto libero, primo stadio, gate e temperatura restano ipotesi. |
-| Striature argentate / splay | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Umidità, volatili, degradazione, shear e azioni di essiccazione richiedono una fonte specifica del grade. |
+| Jetting | BASF §7, p. 22: gate non adatto, condizioni di riempimento, salti di spessore (3 cause). | Gate che faccia urtare il melt contro un ostacolo, sezione e raccordo del gate, velocità/temperatura melt, spessori. | Nessun valore per velocità/temperatura; applicabilità per materiale non indicata. |
+| Striature argentate / splay | BASF §16, p. 46 (umidità, perdita d’acqua, condensa) e §18, p. 52 (attrito localizzato). | Misura e essiccazione sotto il limite del prodotto, riparazione perdite, temperatura sotto la tramoggia, sezioni di gate/sprue/hot runner. | Limite di umidità e finestra di temperatura dipendono dal prodotto e non sono indicati; umidità e attrito possono coesistere (richiesta di chiarimento). |
 | Vuoti, bolle e porosità | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Ritiro, gas, umidità, pack e venting restano ipotesi; non sono stati assimilati a sink. |
 | Intrappolamento aria / sfiato | [COV-TPU-PROCESS](https://solutions.covestro.com/-/media/covestro/solution-center/brands/downloads/imported/1557310236.pdf?rev=e83e64d53f8547f081aa8b34384b9b49&hash=63E74D19279864976EE8C513CF9223A9) supporta soltanto il nesso tra aria compressa e burn mark in TPU. | La fonte dà supporto qualitativo al ruolo dello sfiato per quel caso TPU; non specifica dimensionamento/manutenzione dello sfiato. | Altri air trap, sfiati ostruiti, linee di saldatura e interventi sullo stampo non sono dimostrati. |
 | Contaminazione / inclusioni | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Lotto, riciclo, pulizia e filtrazione restano ipotesi. |
-| Degradazione / bruciatura del materiale | Nessuna causa di degradazione del polimero è supportata: COV-TPU-PROCESS parla di aria calda compressa, fenomeno distinto. | Nessuna azione verificata. | Temperatura, residence, idrolisi, purga e contaminazione restano senza riscontro OEM per grade. |
+| Degradazione / bruciatura del materiale | BASF §18, p. 52 descrive la degradazione termica del melt (usata nella scheda Burn); scheda dedicata non ancora codificata. | Nessuna azione codificata su questa scheda. | Temperatura, residence, idrolisi, purga e contaminazione restano senza codifica per grade. |
 | Cold slug / materiale freddo al gate | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Gate, pozzetto freddo, canale e temperature restano ipotesi. |
 | Finitura lucida/opaca e brillantezza | L’indice COV-TPU-DEFECTS ha una categoria generale “Color defects” (p. 16); non equivale a gloss/opacità. Nessuna causa specifica è supportata. | Nessuna azione verificata. | Texture, temperatura, contaminazione, venting e gloss restano senza riscontro specifico. |
 | Rugosità anomala / puntinatura | Nessun supporto sufficiente. Un estratto su “specks and dots” non è stato ottenuto con contesto verificabile; non viene usato come citazione. | Nessuna azione verificata. | Morfologia, particelle, pori e finitura restano ipotesi. |
@@ -224,9 +224,9 @@ Questa matrice specifica cosa è effettivamente sostenuto dalle fonti. Per le pr
 | Adesione da sottovuoto | La categoria generale demolding di COV-TPU-DEFECTS non dimostra specificamente un meccanismo di vuoto. | Nessuna azione verificata. | Vacuum, venting, draft e ritiro restano ipotesi distinte non coperte dalla fonte accessibile. |
 | Giunzione stampo non chiusa | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Setup/clamp/usura/sicurezza restano da supportare con manuale della pressa e documentazione del toolmaker. |
 
-### Cause eseguibili attuali delle quattro schede (`src/defects/defectCatalog.ts`)
+### Cause eseguibili attuali delle otto schede con cause (`src/defects/defectCatalog.ts`)
 
-Fonte per tutte le righe: BASF, *Injection-Molding Problems in Engineering Thermoplastics* (31.07.2009), riletta direttamente il 2026-10-20; PDF = pagina stampata. Ambito dichiarato: engineering thermoplastics. La legenda a p. 70 nomina Ultramid (PA6/PA66/PA6/66/PA6/6T) e non PP/ABS/PC; la guida non associa i rimedi a singoli grade né fornisce percentuali. Un “Sì” conferma solo la condizione scritta nella domanda; non dimostra che sia l’unica causa e ogni azione resta una verifica o una valutazione, mai una correzione automatica.
+Fonte per tutte le righe: BASF, *Injection-Molding Problems in Engineering Thermoplastics* (31.07.2009), riletta direttamente il 2026-10-20; PDF = pagina stampata. Ambito dichiarato: engineering thermoplastics. La legenda a p. 70 nomina Ultramid (PA6/PA66/PA6/66/PA6/6T) e non PP/ABS/PC; la guida non associa i rimedi a singoli grade e non fornisce valori utilizzabili come correzione automatica. Un “Sì” conferma solo la condizione scritta nella domanda; non dimostra che sia l’unica causa e ogni azione resta una verifica o una valutazione, mai una correzione automatica. Il campo `materialLimit` di ogni causa riporta il limite per materiale dichiarato dalla fonte (es. “solo non rinforzati”) o l’assenza di limiti indicati.
 
 | Scheda | ID causa | ID domanda | Condizione che il “Sì” conferma | Sezione BASF | Limiti di applicabilità |
 |---|---|---|---|---|---|
@@ -248,58 +248,66 @@ Fonte per tutte le righe: BASF, *Injection-Molding Problems in Engineering Therm
 | Sink | `thick-section-shrinkage` | `thick-section` | Affossamento presso sezione spessa, nervatura o cambio di spessore osservato | §5, p. 14 | Interventi geometrici richiedono revisione pezzo/stampo. |
 | Sink | `insufficient-holding` | `holding-shorter-than-gate-open` | Misura di peso o pressione cavità che indica holding più breve del gate-open | §5, p. 14 | Non dimostra la causa dell’affossamento: l’azione chiede di verificare se il sink cambia e di indagare le altre cause (geometria, cushion, perdite di pressione). |
 | Sink | `post-ejection-hot-core` | `after-ejection` | Segno che compare o peggiora dopo l’estrazione | §5, p. 14 | Conferma solo la tempistica; il calore residuo resta ipotesi. |
+| Warpage | `uneven-mold-temperature` | `mold-half-temperature-unfavorable` | Temperature stampo impostate o misurate su metà e nuclei sfavorevoli o non uniformi rispetto al riferimento | §23, p. 62 | BASF: soluzione spesso utile solo per non rinforzati; nessun valore. |
+| Warpage | `wall-thickness-differences` | `wall-thickness-variation` | Spessori diversi o salti di spessore nella zona deformata | §23, p. 62 | Intervento di design, non automatico. |
+| Warpage | `high-pressure-gradient` | `pressure-gradient-high` | Gradiente di pressione elevato per dato di processo o simulazione | §23, p. 62 | Iniezione in più punti indicata solo per non rinforzati. |
+| Warpage | `demolded-too-hot` | `demolded-too-hot` | Pezzo estratto troppo caldo e deformazione che compare o aumenta dopo l’estrazione | §23, p. 62 | Verificare anche trattenimento/controsformo; nessun tempo di raffreddamento indicato. |
+| Warpage | `warpage-prone-material` | `material-warpage-tendency` | Scheda tecnica con differenza marcata tra ritiro longitudinale e trasversale | §23, p. 62 | La fonte non dice quali grade siano a bassa deformazione. |
+| Warpage | `fiber-orientation-variation` | `fiber-orientation-changes` | Materiale con fibra di vetro e orientamento variabile secondo simulazione/analisi del flusso | §23, p. 62 | Solo termoplastici rinforzati con fibra di vetro. |
+| Weld line | `cold-melt-fronts` | `weld-cold-fronts` | Misura o dato di processo che indica temperatura o pressione troppo basse dove i fronti si incontrano | §1, p. 4 | Più evidente in parti scure/trasparenti lucide, con fibra di vetro o pigmenti effetto; velocità da aumentare solo senza problemi di sfiato. |
+| Weld line | `weld-venting` | `weld-venting-problem` | Sfiati nella zona della weld line ostruiti o insufficienti | §1, p. 4 | Con problemi di sfiato la fonte indica di ridurre, non aumentare, la velocità. |
+| Weld line | `weld-gate-or-geometry` | `weld-geometry-cause` | Weld line in corrispondenza di foro, più punti di iniezione, alimentazione opposta o cambio di spessore | §1, p. 4; figure pp. 5–6 | Spostare la linea richiede modifiche di stampo, prima studio moldflow; la weld line è spesso inevitabile. |
+| Jetting | `jetting-gate-design` | `jetting-gate-design` | Melt che esce in cavità libera senza ostacolo vicino o con transizione gate-pezzo non raccordata | §7, p. 22; figure pp. 23–25 | Modifiche di gate con il costruttore stampo. |
+| Jetting | `jetting-fill-conditions` | `jetting-process-conditions` | Riempimento iniziale troppo veloce o melt troppo freddo rispetto al riferimento | §7, p. 22 | Nessun valore o percentuale; finestra del grade da verificare. |
+| Jetting | `jetting-thickness-jump` | `jetting-thickness-jump` | Cambi bruschi di spessore lungo il percorso dopo il gate | §7, p. 22 | Intervento di design. |
+| Splay | `residual-moisture` | `moisture-above-limit` | Umidità misurata sopra il limite del prodotto o essiccatore non funzionante | §16, p. 46 | Il limite dipende dal prodotto e non è indicato per PP, ABS, PC, PA6, PA66. |
+| Splay | `mold-water-leak` | `mold-coolant-leak-found` | Perdita d’acqua del circuito di temperatura verso la cavità riscontrata | §16, p. 46 | Depressione sui regolatori solo come soluzione temporanea. |
+| Splay | `hopper-zone-condensation` | `hopper-zone-too-cold` | Zona sotto la tramoggia troppo fredda con condensa visibile | §16, p. 46 | Finestra di temperatura del materiale non indicata. |
+| Splay | `local-friction` | `local-friction-silver-streaks` | Striature argentee limitate a sezioni di flusso ridotte o a ostacoli | §18, p. 52 | Fenomeno distinto dall’umidità. |
 
-**Diesel, degradazione termica e shear** possono coesistere sul pezzo e nessuna risposta ne esclude un’altra. Se per lo stesso segno (stesso pin) sono dichiarati “Sì” due dei tre fenomeni, la pagina mostra un avviso e il motore aggiunge la raccomandazione `defect-conflict:*` con il controllo discriminante (aspetto e posizione secondo BASF §3 e §18; con più fenomeni, un pin per ciascuno). Le cause dichiarate restano tutte diagnosticate.
+Le quattro schede Warpage, Weld line, Jetting e Splay hanno inoltre domande di contesto senza causa (`causeId: null`) con ID espliciti: `warpage.deviation-measured`, `warpage.side-cavity-difference`, `weld_line.strength-measured`, `weld_line.location-vs-gate`, `jetting.starts-at-gate`, `jetting.first-fill-phase-only`, `splay.persists-after-documented-drying`, `splay.all-cavities-or-single-point`, `splay.parabolic-streaks-flow-direction`. Non producono cause né azioni.
 
-**Risposte salvate e ID ritirati.** Le risposte correnti vivono solo nello stato della pagina; in `localStorage` (`future-molding-defect-evaluations-v1`, versione 1) restano come storico nelle valutazioni e non rientrano nella diagnosi. La migrazione v1 rimappa gli ID pending posizionali (`<scheda>-qN`, `catalog-question-N`) alla stessa domanda con ID esplicito e sposta in `legacyAnswers` ciò che non è riconosciuto. Non sono trasferite le risposte alle domande il cui significato è cambiato: `low-injection-speed`, `localized-end-fill`, `thermal-damage` (domanda combinata, non assegnata alle nuove cause termica e shear), `tool-fit`, `gate-open-measured` (un “Sì” indicava solo la misura eseguita). La pagina chiede di rispondere alle nuove domande.
+**Fenomeni che possono coesistere (Burn: diesel, degradazione termica, shear; Splay: umidità e attrito).** Nessuna risposta ne esclude un’altra e le cause dichiarate restano tutte diagnosticate. Se per lo stesso pin sono dichiarati “Sì” due dei fenomeni del gruppo, la pagina mostra una richiesta di chiarimento (`role="status"`) e il motore aggiunge la raccomandazione `defect-clarification:*`: chiede se i fenomeni riguardano zone o segni diversi (in tal caso un pin per ciascuno) e, solo se riguardano lo stesso segno, propone il controllo discriminante su aspetto e posizione secondo BASF §3, §16 e §18. Non si conclude che siano incompatibili.
+
+**Risposte salvate e ID ritirati.** Le risposte correnti vivono solo nello stato della pagina; in `localStorage` (`future-molding-defect-evaluations-v1`, versione 1) restano come storico nelle valutazioni e non rientrano nella diagnosi. La migrazione v1 usa solo la mappa storica esplicita e immutabile `LEGACY_QUESTION_ID_MAP` (vecchio ID `<scheda>-qN` → ID attuale della stessa domanda), valida soltanto per la scheda con quel prefisso: `warpage-q1` non è accettato come domanda di Jetting. Ogni ID non riconosciuto, compreso `catalog-question-N` perché privo di prefisso, resta in `legacyAnswers`. Se esistono sia il vecchio sia l’attuale ID, prevale la risposta dell’ID attuale e la vecchia resta in `legacyAnswers`. Riordinare o inserire domande nel catalogo non cambia la conversione. Non sono trasferite le risposte alle domande il cui significato è cambiato: `low-injection-speed`, `localized-end-fill`, `thermal-damage` (domanda combinata, non assegnata alle nuove cause termica e shear), `tool-fit`, `gate-open-measured` (un “Sì” indicava solo la misura eseguita). La pagina chiede di rispondere alle nuove domande.
 
 ### Mancato riempimento
-- ID/sinonimi esistenti: `short-shot`, `short_shot`, `SHORT_SHOT`, `short shot`, `Incompletezza`, `Cicca / Incompleto`, `cicca_incompleto`, `Riempimento incompleto`.
-- Sintomi/domande: cavità o estremità non riempita; il difetto è ripetibile nella stessa zona? Compare su tutte le cavità? Qual è la posizione rispetto a gate e sfiati? Dose/cushion sono stabili?
-- Cause probabili: velocità/pressione/volume disponibili insufficienti, commutazione anticipata, sfiato o gate restrittivo, materiale freddo/viscoso, degradazione o alimentazione instabile.
-- Azioni ordinate: processo: controllare profilo, dose, cushion e V/P rispetto al dato macchina; materiale: verificare essiccazione, lotto e range di processo; stampo: controllare gate e sfiati, senza modifiche geometriche automatiche.
-- Ricalcolo: soltanto proposta sul parametro effettivamente controllabile dall’engine, con volume valido, pressa/vite/materiale noti e clamp del flusso/pressione. Escludere se manca una causa discriminante o la correzione supera i limiti.
-- Fonte OEM richiesta: guida di processo della resina per viscosità/finestra; manuale pressa per curva limite pressione/portata; costruttore stampo per gate e sfiati. Stato: pending.
+- ID/sinonimi: `short-shot`, `short_shot`, `SHORT_SHOT`, `short shot`, `Incompletezza`, `Cicca / Incompleto`, `cicca_incompleto`, `Riempimento incompleto`, `Mancanza`, `pezzi mancanti`.
+- Stato: scheda con 5 cause BASF §22 (p. 60), domande con ID espliciti e azioni ordinate; vedi la tabella delle cause eseguibili. Verifica documentale parziale.
+- Automazione: solo la proposta legacy `+10%` sulla velocità, euristica non validata e non derivata da BASF; la gravità non la moltiplica.
+- Lacune: parete sottile o percorso lungo, zona sottile che congela vicino al gate e flowability insufficiente (BASF §22) non sono codificate; nessuna validazione per PP/ABS/PC o grade PA.
 
 ### Bruciature / effetto diesel
 - ID/sinonimi: `burn-mark`, `burn_mark`, `burn`, `bruciature`, `bruciatura`, `diesel`, segni di bruciatura.
-- Sintomi/domande: macchia scura o annerita spesso in fine riempimento? È localizzata presso una zona chiusa/senza sfiato? Odore o degradazione diffusa? Varia con velocità o tempo di permanenza?
-- Cause probabili da separare: aria compressa per evacuazione insufficiente; degradazione termica/tempo di permanenza; contaminazione o materiale umido. Non assumere che ogni burn sia risolvibile riducendo temperatura.
-- Azioni ordinate: processo: esaminare profilo velocità e permanenza; materiale: controllare essiccazione, contaminazione, temperatura e residence rispetto alla scheda; stampo: ispezionare/validare sfiati e zona di intrappolamento.
-- Ricalcolo: la riduzione di velocità è solo proposta e solo nei limiti verificati della pressa; temperatura e contropressione automatiche escluse finché non siano disponibili range specifici del materiale e clamp per ogni zona. Escludere se la causa probabile è sfiato, contaminazione o permanenza non risolta.
-- Fonte OEM richiesta: scheda/guida di processo della resina e manuale macchina per permanenza/temperature; costruttore stampo per ventilazione. Stato: pending.
+- Stato: 5 cause BASF in due fenomeni distinti: diesel (§3, 3 cause) e degradazione termica/shear (§18, 2 cause), con domande e azioni separate. Possono coesistere: due fenomeni dichiarati insieme producono una richiesta di chiarimento sulle zone o i segni, senza esclusioni.
+- Automazione: solo la proposta legacy `-10%` sulla velocità, euristica non validata; temperatura e contropressione non sono mai modificate in automatico.
+- Lacune: velocità troppo alta e fronti multipli compaiono solo nelle azioni; la scheda “Degradazione / bruciatura del materiale” non è ancora codificata.
 
 ### Bave / flash
-- ID/sinonimi: `flash`, `bave`, `bava`, `BAVE`, sbavatura, sormonto, fuga materiale, parting-line flash, `giunzione_stamp` (correlato, non sinonimo automatico).
-- Sintomi/domande: bava lungo piano di divisione, espulsori o inserti? È uniforme o localizzata? Pressione/cushion e forza di chiusura sono conformi? La superficie di chiusura è danneggiata?
-- Cause probabili: stampo non chiuso o usurato, pressione/pack eccessivi, commutazione tardiva, clamp insufficiente, viscosità/temperatura o contaminazione tra piani.
-- Azioni ordinate: processo: verificare pressione, pack, V/P e trend; materiale: confermare grade/temperatura; stampo/macchina: controllare chiusura, parallelismo, usura e clamp tramite specifiche.
-- Ricalcolo: solo correzione su velocità/parametro già supportato, mantenendo limiti pressa; non aumentare automaticamente tonnellaggio/clamp e non ridurre pack senza input di processo validati. Escludere se serve manutenzione o clamp capacity non disponibile.
-- Fonte OEM richiesta: manuale pressa e dati clamp/pressione; costruttore stampo per linea di chiusura; guida resina solo se attribuzione materiale supportata. Stato: pending.
+- ID/sinonimi: `flash`, `bave`, `bava`, `BAVE`, sbavatura, sormonto, fuga materiale, parting-line flash; `giunzione_stamp` è correlato, non sinonimo.
+- Stato: 5 cause BASF §9 (p. 28): gap/superfici di tenuta, pressione cavità, viscosità, flessione stampo, clamp. Alternative non cumulative.
+- Automazione: solo la proposta legacy `-10%` sulla velocità, euristica non validata; il clamp non viene aumentato in automatico.
+- Lacune: trasferibilità a grade e pressa non dimostrata.
 
 ### Segni di ritiro / sink
 - ID/sinonimi: `sink-mark`, `sink_mark`, `sink_marks`, `sink`, `ritiro`, `RITIRO`, affossamento, segni d’affondamento.
-- Sintomi/domande: depressione superficiale in corrispondenza di nervature o sezioni spesse? È presente vuoto interno? Quando appare rispetto a gate freeze e raffreddamento?
-- Cause probabili: compensazione/pack insufficiente o interrotta prima del congelamento gate, massa locale elevata, gate piccolo/lungo, raffreddamento non uniforme.
-- Azioni ordinate: processo: controllare profilo pack e gate freeze misurato; materiale: shrinkage e grade; stampo/prodotto: spessori, nervature, gate e circuiti di raffreddamento.
-- Ricalcolo: manuale nell’integrazione attiva. Abilitare solo quando esistano input pack/tempo/gate-freeze, range materiale e limiti pressione pressa coerenti; nessun delta automatico di pack/temperatura oggi.
-- Fonte OEM richiesta: guida della resina su ritiro/packing; costruttore stampo su gate e raffreddamento. Stato: pending.
+- Stato: 3 cause BASF §5 (p. 14). La condizione “holding più breve del gate-open” è misurata ma non è dimostrata come causa: l’azione chiede di verificare se il sink cambia e di indagare le altre cause.
+- Automazione: manuale; nessun delta automatico di pack o temperatura.
+- Lacune: assenza di melt cushion, perdita di pressione, gate in parete sottile e temperature non sono codificati; nessun valore di holding fornito dalla fonte.
 
 ### Imbarcamento / warpage
-- ID/sinonimi: `warpage`, `deformazione`, `deformazioni`, `deformation`, `DEFORMAZIONE`, imbarcamento centrale.
-- Sintomi/domande: deviazione dimensionale dopo espulsione o dopo condizionamento? Direzione coerente con flusso/fibre? Differenza tra lati stampo?
-- Cause probabili: raffreddamento o ritiro non uniforme, orientamento fibre, pack sbilanciato, geometria/spessore o estrazione precoce.
-- Azioni ordinate: processo: registrare profilo e raffreddamento reale; materiale: grade/carica e ritiro; stampo: bilanciamento canali, temperature metà e sequenza espulsione.
-- Ricalcolo: escluso automaticamente senza misure dimensionali e campi macchina/materiale per ogni variabile; non equalizzare temperature in automatico.
-- Fonte OEM richiesta: guida shrinkage/orientamento del produttore resina; documentazione stampo/termoregolazione. Stato: pending.
+- ID/sinonimi: `warpage`, `deformazione`, `deformazioni`, `deformation`, `DEFORMAZIONE`, imbarcamento, imbarcamento centrale.
+- Stato: 6 cause BASF §23 (p. 62), sintomi, 2 domande di contesto e 6 domande di causa con ID espliciti. Verifica documentale parziale.
+- Limiti per materiale: temperature differenziate e iniezione in più punti solo per non rinforzati; orientamento delle fibre solo per rinforzati con fibra di vetro; la fonte non indica grade a bassa deformazione.
+- Automazione: nessuna; nessuna equalizzazione automatica di temperature.
+- Lacune: nessun valore di temperatura o tempo di raffreddamento; l’indice Covestro TPU resta solo contesto.
 
 ### Linea di giunzione / weld line
 - ID/sinonimi: `weld_line`, linea di giunzione, linea di saldatura, `linea_giunzione`, linea di giunzione debole.
-- Sintomi/domande: linea dove due fronti si incontrano? Resistenza ridotta o solo differenza estetica? Posizione rispetto a gate, fori e sfiati?
-- Cause probabili: fronti freddi o contaminati, geometria/gate, aria, velocità e temperatura in finestra non adeguata.
-- Azioni ordinate: processo: correlare fronte e profilo; materiale: essiccazione/grade e range OEM; stampo: posizione gate, sfiati e geometria.
-- Ricalcolo: manuale fino a quando posizione del fronte, profilo e range termici siano noti; nessun aumento percentuale automatico di melt/velocità.
-- Fonte OEM richiesta: guida di processo e design del produttore resina; costruttore stampo per gate. Stato: pending.
+- Stato: 3 cause BASF §1 (p. 4; figure pp. 5–7): fronti freddi, sfiati, gate/geometria; la weld line è spesso inevitabile e la scheda lo dichiara.
+- Limiti per materiale: più evidente in parti scure o trasparenti lucide, con fibra di vetro o pigmenti effetto; l’effetto sulla resistenza non è quantificato.
+- Automazione: nessuna; la soglia numerica di commutazione citata dalla fonte non è stata adottata come parametro.
+- Lacune: nessun valore per melt e velocità; effetto sulla resistenza da provare separatamente.
 
 ### Linee di flusso / flow marks
 - ID/sinonimi: `linea_flusso`, linee di flusso, flow lines, flowline, striature di flusso.
@@ -310,20 +318,18 @@ Fonte per tutte le righe: BASF, *Injection-Molding Problems in Engineering Therm
 - Fonte OEM richiesta: guida resina su estetica/fronti e finitura; costruttore stampo su gate/superficie. Stato: pending.
 
 ### Jetting
-- ID/sinonimi: `jetting`, getto, serpentina/filamento a serpente.
-- Sintomi/domande: traccia sinuosa originata dal gate senza fronte a fontana? È limitata alla prima fase di riempimento?
-- Cause probabili: getto libero ad alta inerzia, gate/orientamento, transizione di velocità.
-- Azioni ordinate: processo: esaminare primo stadio e commutazione profilo; materiale: viscosità e temperatura OEM; stampo: posizione/dimensione gate e impingement.
-- Ricalcolo: possibile solo quando profilo multistadio e limite macchina sono disponibili; l’engine attuale espone solo override aggregato, quindi manuale.
-- Fonte OEM richiesta: manuale pressa su profilo multistadio; guida stampo/resina su gate e fronti. Stato: pending.
+- ID/sinonimi: `jetting`, getto, serpentina.
+- Stato: 3 cause BASF §7 (p. 22; figure pp. 23–25): gate, condizioni di riempimento, salti di spessore. 2 domande di contesto e 3 di causa.
+- Limiti per materiale: la fonte non indica limiti per materiale né valori.
+- Automazione: nessuna; l’engine espone solo un override aggregato di velocità, non un profilo multistadio.
+- Lacune: nessun valore per velocità e temperatura; applicabilità a PP/ABS/PC non dimostrata.
 
 ### Striature argentate / splay
-- ID/sinonimi: `splay`, striature, striature argentate, striature da umidità, `striature`, `materiale_degradato` (possibile causa distinta).
-- Sintomi/domande: filamenti argentati nella direzione del flusso? Persistono dopo essiccazione? Coinvolgono tutte le cavità o un singolo punto?
-- Cause probabili: umidità/volatili, degradazione, contaminazione, shear o aria.
-- Azioni ordinate: processo: controllare residence e shear; materiale: verificare procedura di essiccazione del grade e lotto; macchina/stampo: controllare alimentazione, sfiati e ristagni.
-- Ricalcolo: non automatico senza identificazione del materiale e dati essiccazione; non ridurre arbitrariamente temperature/contropressione.
-- Fonte OEM richiesta: istruzione di essiccazione e guida di processo specifiche del grado. Stato: pending.
+- ID/sinonimi: `splay`, striature, striature argentate, striature da umidità, silver streaks.
+- Stato: 4 cause BASF: umidità, perdita d’acqua e condensa (§16, p. 46), attrito localizzato (§18, p. 52). 3 domande di contesto e 4 di causa.
+- Limiti per materiale: il limite di umidità dipende dal prodotto e la fonte non lo indica per PP, ABS, PC, PA6, PA66; finestra di temperatura sotto la tramoggia non indicata.
+- Automazione: nessuna; nessun valore di essiccazione o temperatura.
+- Lacune: umidità e attrito possono coesistere: la pagina chiede il chiarimento su zone o segni diversi.
 
 ### Vuoti, bolle e porosità
 - ID/sinonimi: `voids`, `bolle_aria`, bolle, vuoti, porosità, `materiale_degradato` (da distinguere).
