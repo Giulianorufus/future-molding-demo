@@ -224,6 +224,35 @@ Questa matrice specifica cosa è effettivamente sostenuto dalle fonti. Per le pr
 | Adesione da sottovuoto | La categoria generale demolding di COV-TPU-DEFECTS non dimostra specificamente un meccanismo di vuoto. | Nessuna azione verificata. | Vacuum, venting, draft e ritiro restano ipotesi distinte non coperte dalla fonte accessibile. |
 | Giunzione stampo non chiusa | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Setup/clamp/usura/sicurezza restano da supportare con manuale della pressa e documentazione del toolmaker. |
 
+### Cause eseguibili attuali delle quattro schede (`src/defects/defectCatalog.ts`)
+
+Fonte per tutte le righe: BASF, *Injection-Molding Problems in Engineering Thermoplastics* (31.07.2009), riletta direttamente il 2026-10-20; PDF = pagina stampata. Ambito dichiarato: engineering thermoplastics. La legenda a p. 70 nomina Ultramid (PA6/PA66/PA6/66/PA6/6T) e non PP/ABS/PC; la guida non associa i rimedi a singoli grade né fornisce percentuali. Un “Sì” conferma solo la condizione scritta nella domanda; non dimostra che sia l’unica causa e ogni azione resta una verifica o una valutazione, mai una correzione automatica.
+
+| Scheda | ID causa | ID domanda | Condizione che il “Sì” conferma | Sezione BASF | Limiti di applicabilità |
+|---|---|---|---|---|---|
+| Short shot | `dose-cushion` | `dose-cushion` | Dose o cushion insufficienti/instabili | §22, p. 60 | Misura sul ciclo reale; nessun valore universale. |
+| Short shot | `low-injection-speed` | `injection-speed-too-low` | Velocità d’iniezione troppo bassa, per misura o confronto con il processo di riferimento | §22, p. 60 | Aumento solo se confermata e entro i limiti pressa/portata. |
+| Short shot | `flow-restriction` | `flow-restriction` | Restrizione in gate/canali o sezione sottile osservata | §22, p. 60 | Modifiche di sezione solo dopo conferma; non dedotte dal pin. |
+| Short shot | `low-melt-or-mold-temperature` | `low-melt-or-mold-temperature` | Temperatura melt o stampo misurata sotto la finestra del grade | §22, p. 60 | Prima melt, poi stampo (può allungare il ciclo); finestra del grade richiesta. |
+| Short shot | `inadequate-venting` | `inadequate-venting` | Sfiati ostruiti o insufficienti osservati | §22, p. 60 | Dimensionamento dello sfiato con il costruttore stampo. |
+| Burn | `compressed-air` (diesel) | `diesel-localized-black-mark` | Macchia nera localizzata (fine riempimento, nervature, fronti confluenti) senza striature marroni o argentee estese o attorno al gate | §3, pp. 10–11 | Compatibile con diesel, non provato dal pin. |
+| Burn | `blocked-venting` (diesel) | `venting-obstruction` | Sfiati ostruiti o via di fuga dell’aria insufficiente | §3, pp. 10–11 | Verifica sullo stampo. |
+| Burn | `parting-line-air-release` (diesel) | `parting-line-trap` | Burn vicino al piano di divisione con aria che non può uscire | §3, pp. 10–11 | La riduzione del clamp è citata solo per questo caso, entro limiti macchina/stampo. |
+| Burn | `thermal-degradation` | `thermal-degradation-evidence` | Striature da marrone chiaro a molto scuro e temperatura melt o permanenza fuori finestra (o fermo macchina) | §18, p. 52 | Fenomeno distinto dal diesel; la domanda combina aspetto e dato di processo. |
+| Burn | `high-shear-streaks` | `shear-streaks` | Striature argentee limitate a sezioni di flusso ridotte o a ostacoli | §18, p. 52 | Fenomeno distinto dal diesel; sezioni da confrontare con il progetto. |
+| Flash | `parting-gap-or-damage` | `parting-gap-found` | Gap anomalo, fit fuori tolleranza o superficie di tenuta danneggiata riscontrati | §9, p. 28 | Non compensare un danno aumentando il clamp. |
+| Flash | `high-cavity-pressure` | `high-cavity-pressure` | Misura o dato macchina che indica pressione cavità elevata | §9, p. 28 | Le alternative BASF non sono cumulative; ridurre la velocità può causare short shot. |
+| Flash | `low-melt-viscosity` | `melt-condition` | Temperatura, permanenza o umidità fuori finestra per il grade | §9, p. 28 | Agire solo sulla variabile fuori finestra. |
+| Flash | `mold-deflection` | `mold-deflection` | Flessione o apertura dello stampo sotto pressione riscontrata | §9, p. 28 | Interventi costruttivi solo con il costruttore stampo. |
+| Flash | `insufficient-clamp` | `clamp-insufficient` | Clamp insufficiente confermato rispetto ai limiti macchina | §9, p. 28 | Intervento solo se autorizzato e nei limiti pressa. |
+| Sink | `thick-section-shrinkage` | `thick-section` | Affossamento presso sezione spessa, nervatura o cambio di spessore osservato | §5, p. 14 | Interventi geometrici richiedono revisione pezzo/stampo. |
+| Sink | `insufficient-holding` | `holding-shorter-than-gate-open` | Misura di peso o pressione cavità che indica holding più breve del gate-open | §5, p. 14 | Non dimostra la causa dell’affossamento: l’azione chiede di verificare se il sink cambia e di indagare le altre cause (geometria, cushion, perdite di pressione). |
+| Sink | `post-ejection-hot-core` | `after-ejection` | Segno che compare o peggiora dopo l’estrazione | §5, p. 14 | Conferma solo la tempistica; il calore residuo resta ipotesi. |
+
+**Diesel, degradazione termica e shear** possono coesistere sul pezzo e nessuna risposta ne esclude un’altra. Se per lo stesso segno (stesso pin) sono dichiarati “Sì” due dei tre fenomeni, la pagina mostra un avviso e il motore aggiunge la raccomandazione `defect-conflict:*` con il controllo discriminante (aspetto e posizione secondo BASF §3 e §18; con più fenomeni, un pin per ciascuno). Le cause dichiarate restano tutte diagnosticate.
+
+**Risposte salvate e ID ritirati.** Le risposte correnti vivono solo nello stato della pagina; in `localStorage` (`future-molding-defect-evaluations-v1`, versione 1) restano come storico nelle valutazioni e non rientrano nella diagnosi. La migrazione v1 rimappa gli ID pending posizionali (`<scheda>-qN`, `catalog-question-N`) alla stessa domanda con ID esplicito e sposta in `legacyAnswers` ciò che non è riconosciuto. Non sono trasferite le risposte alle domande il cui significato è cambiato: `low-injection-speed`, `localized-end-fill`, `thermal-damage` (domanda combinata, non assegnata alle nuove cause termica e shear), `tool-fit`, `gate-open-measured` (un “Sì” indicava solo la misura eseguita). La pagina chiede di rispondere alle nuove domande.
+
 ### Mancato riempimento
 - ID/sinonimi esistenti: `short-shot`, `short_shot`, `SHORT_SHOT`, `short shot`, `Incompletezza`, `Cicca / Incompleto`, `cicca_incompleto`, `Riempimento incompleto`.
 - Sintomi/domande: cavità o estremità non riempita; il difetto è ripetibile nella stessa zona? Compare su tutte le cavità? Qual è la posizione rispetto a gate e sfiati? Dose/cushion sono stabili?

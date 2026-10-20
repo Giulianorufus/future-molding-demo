@@ -7,7 +7,7 @@ import { resolveDefectIntegration } from "../defects/defectAdapter";
 import { findDefectCatalogEntries, resolveDefectCatalogEntry } from "../defects/defectCatalog";
 import { inferKnowledgeRecommendations } from "../engine/knowledge/knowledgeEngine";
 import type { KnowledgeResult } from "../engine/knowledge/types";
-import { getContextualDefectProfile, type OperatorAnswer } from "../engine/knowledge/defectContext";
+import { getContextualDefectProfile, detectAnswerConflicts, type OperatorAnswer } from "../engine/knowledge/defectContext";
 import { buildDefectCaseId, buildDefectKnowledgeContext, levelToSeverity, severityToLevel, type DefectMeshPin } from "../defects/defectAssessment";
 
 const EMPTY_ANSWERS: Record<string, OperatorAnswer> = {};
@@ -62,6 +62,8 @@ export default function DifettiPage() {
   const answers = caseId ? answersByCase[caseId] ?? EMPTY_ANSWERS : EMPTY_ANSWERS;
   const currentCase = evaluations.find((item) => item.caseId === caseId);
   const previousEvaluation = currentCase?.evaluations.at(-1);
+  const answerConflicts = detectAnswerConflicts(catalogEntry?.id, answers);
+  const hasLegacyAnswers = (currentCase?.evaluations ?? []).some((entry) => Object.keys(entry.legacyAnswers ?? {}).length > 0);
   const validVolume = typeof volumeCm3 === 'number' && Number.isFinite(volumeCm3) && volumeCm3 > 0 ? volumeCm3 : null;
   const validBoundingBox = boundingBox && Object.values(boundingBox).every((value) => Number.isFinite(value) && value > 0)
     ? boundingBox
@@ -313,6 +315,13 @@ export default function DifettiPage() {
                 })}
               </div>
             )}
+
+            {hasLegacyAnswers && (
+              <p className="mt-2 text-xs text-amber-800" role="status">Alcune risposte salvate in precedenza riguardavano domande sostituite e non sono state trasferite: rispondi alle nuove domande.</p>
+            )}
+            {answerConflicts.map((conflict) => (
+              <p key={conflict.causeIds.join('+')} className="mt-2 text-xs text-red-800" role="alert">{conflict.message} Controllo discriminante: {conflict.discriminatingCheck}</p>
+            ))}
 
             {catalogEntry.probableCauses.length === 0 && (
               <p className="mt-2 text-xs text-amber-800">Scheda incompleta: le risposte vengono registrate, ma non producono cause o azioni tecniche non verificate.</p>

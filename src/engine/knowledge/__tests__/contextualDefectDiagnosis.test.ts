@@ -26,7 +26,7 @@ const baseContext: KnowledgeContext = {
       drawingVersion: 'drawing-a',
     },
     geometry: { volumeCm3: 20, boundingBoxMm: { x: 20, y: 30, z: 10 }, source: 'cad-analysis' },
-    answers: { 'localized-end-fill': 'unknown', 'thermal-damage': 'yes' },
+    answers: { 'diesel-localized-black-mark': 'unknown', 'thermal-degradation-evidence': 'yes' },
   },
 }
 
@@ -99,7 +99,7 @@ describe('contextual defect diagnosis', () => {
   test('a declared negative answer removes the corresponding cause and action', async () => {
     const context = {
       ...baseContext,
-      defectContext: { ...baseContext.defectContext, answers: { 'localized-end-fill': 'no' as const } },
+      defectContext: { ...baseContext.defectContext, answers: { 'diesel-localized-black-mark': 'no' as const } },
     }
     const diagnosis = await diagnose(context, [])
     const recommendations = await recommend(diagnosis, context, [])

@@ -66,7 +66,7 @@ describe('burn: diesel effect vs thermal degradation vs shear', () => {
   })
 
   test('a declared thermal degradation does not declare the diesel causes', async () => {
-    const context = contextFor('burn_mark', { 'thermal-damage': 'yes' })
+    const context = contextFor('burn_mark', { 'thermal-degradation-evidence': 'yes' })
     const diagnosis = await diagnose(context, [])
     const declared = diagnosis.filter((item) => item.metadata?.provenance === 'operator-declared').map((item) => item.id)
     expect(declared).toEqual(['defect-cause:thermal-degradation'])

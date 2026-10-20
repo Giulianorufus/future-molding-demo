@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { DefectEvaluationCase, DefectEvaluationEntry } from '@/defects/defectAssessment'
 import { appendEvaluation } from '@/defects/defectAssessment'
+import { migrateStoredAnswers } from '@/defects/defectCatalog'
 import type { DefectMeshPin } from '@/defects/defectAssessment'
 
 export type DefectSeverity = "low" | "medium" | "high"
@@ -19,6 +20,21 @@ type DefectsState = {
   addMeshPin: (pin: DefectMeshPin) => void
   removeMeshPin: (id: string) => void
   reset: () => void
+}
+
+export function migrateDefectsState(persisted: unknown, version: number): unknown {
+  if (version >= 1 || !persisted || typeof persisted !== 'object') return persisted
+  const state = persisted as { evaluations?: DefectEvaluationCase[] }
+  return {
+    ...state,
+    evaluations: (state.evaluations ?? []).map((item) => ({
+      ...item,
+      evaluations: item.evaluations.map((entry) => {
+        const migrated = migrateStoredAnswers(item.defectId, entry.answers ?? {})
+        return { ...entry, answers: migrated.answers, legacyAnswers: { ...(entry.legacyAnswers ?? {}), ...migrated.legacyAnswers } }
+      }),
+    })),
+  }
 }
 
 export const useDefectsStore = create<DefectsState>()(persist((set) => ({
@@ -41,6 +57,8 @@ export const useDefectsStore = create<DefectsState>()(persist((set) => ({
   reset: () => set({ selectedDefectId: null, selectedSeverity: 'medium' }),
 }), {
   name: 'future-molding-defect-evaluations-v1',
+  version: 1,
+  migrate: migrateDefectsState as never,
   partialize: (state) => ({ evaluations: state.evaluations, meshPins: state.meshPins }),
 }))
 

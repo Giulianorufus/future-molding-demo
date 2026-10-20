@@ -1,5 +1,5 @@
 import type { Diagnosis, KnowledgeContext, Recommendation, SimilarCase } from './types'
-import { getContextualDefectProfile } from './defectContext'
+import { getContextualDefectProfile, detectAnswerConflicts } from './defectContext'
 
 export async function recommend(
   diagnosis: Diagnosis[],
@@ -19,7 +19,7 @@ export async function recommend(
         target: cause.questionId,
         action: 'investigate',
         reason: declared
-          ? `${cause.action} Condizione dichiarata dall’operatore; verifica prima di intervenire.`
+          ? `${cause.action} Condizione dichiarata dall’operatore; verifica prima di intervenire. Il “Sì” conferma la condizione descritta, non dimostra che sia l’unica causa del difetto: verifica l’effetto dopo l’intervento.`
           : `Risposta attuale “Non so”: ${cause.question} Se il controllo conferma questa causa, valuta solo allora: ${cause.action} Nessuna correzione automatica è applicata.`,
         priority: (declared ? 80 : 50) - cause.order,
         metadata: {
@@ -35,6 +35,16 @@ export async function recommend(
         },
       })
     }
+    detectAnswerConflicts(profile.id, context.defectContext?.answers).forEach((conflict) => {
+      recommendations.push({
+        id: `defect-conflict:${conflict.causeIds.join('+')}`,
+        target: conflict.questionIds[0],
+        action: 'investigate',
+        reason: `${conflict.message} Controllo discriminante: ${conflict.discriminatingCheck}`,
+        priority: 90,
+        metadata: { provenance: 'answer-conflict', catalogId: profile.id, questionIds: conflict.questionIds, automaticCorrection: false },
+      })
+    })
   }
 
   if (context.recipeFingerprint && similarCases.length > 0) {

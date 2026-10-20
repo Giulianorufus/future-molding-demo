@@ -21,6 +21,7 @@ export interface DefectEvaluationEntry {
   severityAfter: DefectSeverityLevel
   interventionTried: string
   answers: Record<string, OperatorAnswer>
+  legacyAnswers?: Record<string, OperatorAnswer>
   evaluatedAtISO: string
 }
 

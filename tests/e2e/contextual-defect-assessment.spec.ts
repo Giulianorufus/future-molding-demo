@@ -88,6 +88,12 @@ for (const viewport of [
     const endFillQuestion = page.getByLabel(/^La macchia è nera e localizzata/)
     await endFillQuestion.selectOption('yes')
     await expect(page.getByText(/Riscontro dichiarato dall’operatore/)).toBeVisible()
+    await expect(page.getByRole('alert').filter({ hasText: 'Risposte in contrasto' })).toHaveCount(0)
+    await page.getByLabel(/^Le tracce sono striature da marrone/).selectOption('yes')
+    await expect(page.getByRole('alert').filter({ hasText: 'Controllo discriminante' })).toBeVisible()
+    await expect(page.getByText(/Riscontro dichiarato dall’operatore/).first()).toBeVisible()
+    await page.getByLabel(/^Le tracce sono striature da marrone/).selectOption('unknown')
+    await expect(page.getByRole('alert').filter({ hasText: 'Risposte in contrasto' })).toHaveCount(0)
 
     await page.goto('/#/disegni')
     await page.getByTestId('drawing-item-demo-cad-b').getByRole('button', { name: 'Seleziona' }).click()
