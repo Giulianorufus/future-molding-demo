@@ -2,12 +2,13 @@
 import { useDrawingStore } from "../stores/drawingStore";
 import { useParametriStore } from "../stores/parametriStore";
 import { useDefectsStore } from "../stores/defectsStore";
+import { useMaterialStore } from "../stores/materialStore";
 import ThreeViewer from "../components/ThreeViewer";
 import { resolveDefectIntegration } from "../defects/defectAdapter";
 import { findDefectCatalogEntries, resolveDefectCatalogEntry } from "../defects/defectCatalog";
 import { inferKnowledgeRecommendations } from "../engine/knowledge/knowledgeEngine";
 import type { KnowledgeResult } from "../engine/knowledge/types";
-import { getContextualDefectProfile, detectClarificationRequests, type OperatorAnswer } from "../engine/knowledge/defectContext";
+import { getContextualDefectProfile, detectClarificationRequests, assessCauseMaterial, DEFAULT_MATERIAL_LIMIT, type OperatorAnswer } from "../engine/knowledge/defectContext";
 import { buildDefectCaseId, buildDefectKnowledgeContext, levelToSeverity, severityToLevel, type DefectMeshPin } from "../defects/defectAssessment";
 
 const EMPTY_ANSWERS: Record<string, OperatorAnswer> = {};
@@ -51,6 +52,12 @@ export default function DifettiPage() {
   const [knowledgeResult, setKnowledgeResult] = useState<KnowledgeResult | null>(null);
 
   const catalogEntry = resolveDefectCatalogEntry(selectedDefectId);
+  const selectedMaterialSpec = useMaterialStore((s) => (s.selectedMaterialId ? s.catalog[s.selectedMaterialId] ?? null : null));
+  const materialInfo = React.useMemo(() => {
+    if (!selectedMaterialSpec) return null;
+    const spec = selectedMaterialSpec as unknown as { id: string; name: string; family?: string; gfPct?: number };
+    return { id: spec.id, name: spec.name, family: spec.family ?? null, gfPct: typeof spec.gfPct === 'number' ? spec.gfPct : null };
+  }, [selectedMaterialSpec]);
   const defectIntegration = resolveDefectIntegration(catalogEntry?.id);
   const profile = getContextualDefectProfile(catalogEntry?.id);
   const visibleCatalogEntries = findDefectCatalogEntries(catalogSearch);
@@ -98,6 +105,7 @@ export default function DifettiPage() {
       severity: levelToSeverity(selectedMeshPin.severity),
       pin: selectedMeshPin,
       answers,
+      material: materialInfo,
       volumeCm3: geometryAvailable ? validVolume : null,
       boundingBoxMm: geometryAvailable ? validBoundingBox : null,
       rawResult: (result ?? {}) as unknown as Record<string, unknown>,
@@ -114,7 +122,7 @@ export default function DifettiPage() {
     });
 
     return () => { cancelled = true };
-  }, [answers, boundingBox, catalogEntry?.id, drawingId, geometryAvailable, result, selectedDefectId, selectedMeshPin?.id, selectedSeverity, validBoundingBox, validVolume]);
+  }, [answers, boundingBox, catalogEntry?.id, drawingId, geometryAvailable, materialInfo, result, selectedDefectId, selectedMeshPin?.id, selectedSeverity, validBoundingBox, validVolume]);
 
   const selectedLabel = catalogEntry?.nameIt ?? selectedDefectId;
   const placeMeshPin = (position: { x: number; y: number; z: number }) => {
@@ -226,7 +234,7 @@ export default function DifettiPage() {
               {catalogEntry.probableCauses.length > 0 ? (
                 <ol className="mt-1 list-decimal pl-5">
                   {catalogEntry.probableCauses.map((cause) => (
-                    <li key={cause.id} className="mt-1">{cause.title}: {cause.action} <span className="text-gray-500">({cause.domain}; {cause.sourceReference}{cause.materialLimit ? `; materiale: ${cause.materialLimit}` : ''})</span></li>
+                    <li key={cause.id} className="mt-1">{cause.title}: {cause.action} <span className="text-gray-500">({cause.domain}; {cause.sourceReference}; materiale: {cause.materialLimit ?? DEFAULT_MATERIAL_LIMIT})</span>{cause.corroboration && <span className="block text-gray-500">Altre fonti: {cause.corroboration}</span>}{assessCauseMaterial(cause, materialInfo).status !== 'unrestricted' && <span className="block text-amber-800">{assessCauseMaterial(cause, materialInfo).note}</span>}</li>
                   ))}
                 </ol>
               ) : (

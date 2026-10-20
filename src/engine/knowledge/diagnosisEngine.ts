@@ -1,5 +1,5 @@
 import type { KnowledgeContext, Diagnosis, SimilarCase } from './types'
-import { getContextualDefectProfile } from './defectContext'
+import { getContextualDefectProfile, assessCauseMaterial } from './defectContext'
 import { resolveDefectCatalogEntry } from '@/defects/defectCatalog'
 
 export async function diagnose(
@@ -34,6 +34,7 @@ export async function diagnose(
             sourceReference: cause.sourceReference,
             questionId: cause.questionId,
             answer,
+            materialApplicability: assessCauseMaterial(cause, context.defectContext?.material).status,
             drawingId: context.defectContext?.drawingId ?? null,
             drawingVersion: context.defectContext?.pin?.drawingVersion ?? null,
             severityLevel: context.defectContext?.severityLevel ?? null,

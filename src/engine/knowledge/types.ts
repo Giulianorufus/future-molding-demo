@@ -72,6 +72,7 @@ export interface DefectContext {
     drawingVersion?: string
   } | null
   answers?: Record<string, 'yes' | 'no' | 'unknown'>
+  material?: { id: string; name: string; family: string | null; gfPct: number | null } | null
   geometry?: {
     volumeCm3?: number | null
     boundingBoxMm?: { x: number; y: number; z: number } | null

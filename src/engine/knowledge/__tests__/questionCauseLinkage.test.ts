@@ -48,8 +48,8 @@ describe('question-to-cause linkage', () => {
         expect(cause?.question).toBe(question.text)
       }
     }
-    const pendingEntry = resolveDefectCatalogEntry('cold_slug')!
-    expect(pendingEntry.diagnosticQuestions.map((q) => q.id)).toEqual(['cold_slug.near-gate', 'cold_slug.cold-well-checked'])
+    const pendingEntry = resolveDefectCatalogEntry('fold_marks')!
+    expect(pendingEntry.diagnosticQuestions.map((q) => q.id)).toEqual(['fold_marks.distinct-from-weld', 'fold_marks.location-vs-gate'])
     expect(pendingEntry.diagnosticQuestions.every((q) => q.causeId === null)).toBe(true)
   })
 })

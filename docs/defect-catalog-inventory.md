@@ -2,7 +2,7 @@
 
 Stato: inventario tecnico con catalogo eseguibile v1 in `src/defects/defectCatalog.ts`. Non sostituisce le regole in produzione e non certifica completezza. Non aggiunge correzioni automatiche o variazioni percentuali.
 
-Esito documentale aggiornato al 2026-10-20: **0 schede validate integralmente per ciascun materiale target, 13 parziali, 11 senza riscontro codificato**. Il file contiene 24 schede. Quattro PDF OEM erano stati scaricati via HTTP (200, Content-Type PDF, firma `%PDF-`) ed estratti con `pypdf` installato solo in `%TEMP%`; il manuale BASF è stato riletto direttamente il 2026-10-20 con lo stesso metodo, senza aggiungere dipendenze all’app. Le schede parziali hanno fonte leggibile ma scope TPU/hot-runner o trasferibilità non dimostrata a tutti i grade. Le schede senza riscontro codificato non hanno cause o azioni nel catalogo; per alcune il manuale BASF ha un capitolo non ancora estratto (vedi tabella).
+Esito documentale aggiornato al 2026-10-20: **0 schede validate integralmente per ciascun materiale target, 15 parziali, 9 senza riscontro codificato**; **validazione sul campo: 0**. Il file contiene 24 schede. I PDF BASF, Mold-Masters e Covestro sono stati scaricati via HTTP e estratti con `pypdf` installato solo in `%TEMP%`, senza aggiungere dipendenze all’app; le sezioni pertinenti di BASF, Mold-Masters e Covestro sono state lette dal testo estratto e non dal solo indice. Le schede parziali hanno fonte leggibile ma scope TPU/hot-runner o trasferibilità non dimostrata a tutti i grade. Le schede senza riscontro codificato non hanno cause o azioni nel catalogo.
 
 ## Criteri e stato delle fonti
 
@@ -152,7 +152,16 @@ Questo inventario non prova che tutte le cause siano coperte né che i sinonimi 
 
 Il catalogo eseguibile è `src/defects/defectCatalog.ts`: contiene 24 ID canonici, nomi, alias legacy, descrizioni, sintomi, criteri gravità 1–3, domande, fonti/limiti e stato di verifica/automazione. La normalizzazione degli alias fallisce esplicitamente in caso di collisione non risolta. La pagina Difetti filtra/mostra tutte le voci; il pin mesh usa l’ID canonico del catalogo.
 
-Copertura attuale: **24 schede selezionabili, 13 parziali, 11 senza riscontro codificato**. Otto schede (short shot, burn/diesel, flash, sink, warpage, weld line, jetting, splay) hanno cause e azioni BASF lette nel relativo campo dichiarato; le azioni sono condizionali e non validate per ogni grade. Cinque schede parziali (air trap, dimensioni, graffi in estrazione, delaminazione, colature) hanno solo fonti di contesto TPU/hot-runner o un capitolo BASF non ancora codificato e non generano cause/azioni. Le restanti 11 non hanno cause codificate. Le schede senza cause verificate restituiscono solo lo stato documentale nel Knowledge Engine e zero raccomandazioni tecniche.
+Copertura attuale (riepilogo nella tabella seguente): le 12 schede con cause (short shot, burn/diesel, flash, sink, warpage, weld line, jetting, splay, vuoti interni, intrappolamento aria, cold slug, delaminazione) hanno cause e azioni condizionali da fonti dei produttori, non validate per ogni grade; le altre 12 restituiscono solo lo stato documentale nel Knowledge Engine e zero raccomandazioni tecniche.
+
+| Voce | Valore |
+|---|---|
+| Schede totali | 24 |
+| Schede con cause e azioni | 12: short shot, burn/diesel, flash, sink, warpage, weld line, jetting, splay, vuoti interni, intrappolamento aria, cold slug, delaminazione (52 cause in tutto) |
+| Schede senza cause né azioni | 12: 3 con sola fonte di contesto (dimensioni fuori tolleranza, graffi in estrazione, colature e filamenti) e 9 senza fonti codificate (flow marks, contaminazione, degradazione, finitura, rugosità, peso, piegature, adesione da sottovuoto, giunzione stampo) |
+| Validazione documentale | 15 parziali (12 con cause e 3 di contesto), 9 senza riscontro codificato, 0 validate integralmente |
+| Validazione sul campo | 0: nessuna scheda è stata provata su pezzi, presse o materiali reali; “validated” richiede dati del grade, limiti pressa/vite, geometria e prova sul pezzo |
+| Correzioni automatiche | 3, solo euristiche legacy non validate sulla velocità (`+10%` Short shot, `-10%` Burn, `-10%` Flash); nessuna delle altre 21 schede |
 
 Automazione: le tre proposte legacy `+10%` Short Shot, `-10%` Burn, `-10%` Flash restano le sole correzioni percentuali disponibili; sono euristiche non validate e la gravità non ne moltiplica il valore. Sink resta manuale. Nessuna voce nuova abilita ricalcolo. `validated` continua a richiedere dati specifici di grado, pressa/vite, limiti, geometria e prova pezzo.
 
@@ -175,23 +184,23 @@ Le 24 schede seguenti documentano il perimetro del catalogo. Causa/azione presen
 | Linee di flusso / flow marks | Senza riscontro | Nessuna causa codificata; il manuale BASF ha capitoli affini (§19 Tiger lines, pp. 54–55) non ancora estratti: da non assimilare a flow marks senza lettura. |
 | Jetting | Parziale | BASF §7, PDF/stampata p. 22 (figure pp. 23–25): 3 cause (gate, condizioni di riempimento, spessori) con rimedi; nessun valore numerico. |
 | Striature argentate / splay | Parziale | BASF §16, PDF/stampata p. 46 (umidità, perdita d’acqua dello stampo, condensa) e §18, p. 52 (attrito localizzato, striature argentee); i limiti di umidità dipendono dal prodotto. |
-| Vuoti, bolle e porosità | Senza riscontro | Nessuna causa codificata; il capitolo BASF §12 (pp. 38–39) compare nell’indice del manuale ma non è ancora stato estratto. Mantenuto distinto da sink. |
-| Intrappolamento aria / sfiato | Parziale | COV-TPU-PROCESS supporta il ruolo dello sfiato per burn da aria compressa nel TPU; il capitolo BASF §11 Air entrapment (pp. 34–37) compare nell’indice ma non è stato estratto. Nessuna causa codificata. |
+| Vuoti, bolle e porosità | Parziale | BASF §12, PDF/stampata p. 38 (figure p. 39): 4 cause con rimedi e distinzione dai gas bubbles; corroborazione Mold-Masters §1.6.15. Esempi con Ultramid, Ultradur e Ultraform rinforzati; trasferibilità a PP/ABS/PC non dimostrata. |
+| Intrappolamento aria / sfiato | Parziale | BASF §11, PDF/stampata p. 34 (figure pp. 35–37): 3 cause; sfiato da Mold-Masters §1.6.2 (PDF p. 10 / 1-6), guida hot-runner a polimero non dichiarato. COV-TPU-PROCESS resta riferimento solo TPU. |
 | Contaminazione / inclusioni | Senza riscontro | Nessuna causa codificata; il capitolo BASF §4 Black specks (pp. 12–13) compare nell’indice ma non è ancora stato estratto. |
 | Degradazione / bruciatura del materiale | Senza riscontro | BASF §18 (p. 52) descrive le burning streaks da degradazione termica e già alimenta due cause della scheda Burn; la scheda dedicata non è ancora codificata. |
-| Cold slug / materiale freddo al gate | Senza riscontro | Nessuna causa codificata; il capitolo BASF §10 (pp. 30–33) compare nell’indice ma non è ancora stato estratto. |
+| Cold slug / materiale freddo al gate | Parziale | BASF §10, PDF/stampata p. 30 (figure pp. 31–33): 5 cause con rimedi; corroborazione Mold-Masters §1.6.3 e Covestro TPU (stampate 56–57). Finestra di temperatura non indicata. |
 | Finitura lucida/opaca e brillantezza | Senza riscontro | Nessuna causa codificata; i capitoli BASF §8 Gloss variations (pp. 26–27) e §13 Dull spots (pp. 40–41) compaiono nell’indice ma non sono stati estratti. L’indice Covestro “Color defects” non prova gloss/opacità. |
 | Rugosità anomala / puntinatura | Senza riscontro | L’indice menziona specks/dots in un frammento non verificabile nel contesto del PDF; nessuna causa/rimedio è supportato. |
 | Peso fuori specifica | Senza riscontro | Nessuna fonte OEM specifica acquisita. |
 | Dimensioni fuori tolleranza | Parziale | COV-TPU-DEFECTS ha sezione “Defects in dimensions” a p. 4 nell’indice; cause e azioni specifiche non verificate. |
 | Graffi e difetti di estrazione | Parziale | COV-TPU-DEFECTS contiene “Demolding defects” (p. 9) e menziona ejector marks; il capitolo BASF §6 (pp. 18–21) compare nell’indice ma non è stato estratto. Nessuna causa codificata. |
-| Lineamenti da delaminazione | Parziale | BASF §2 (p. 8) descrive la delaminazione come distacco degli strati superficiali per shear eccessivo in melt relativamente freddo con stampo freddo; cause e rimedi non ancora codificati. Un estratto COV-TPU-DEFECTS la definisce come distacco/scagliatura dello strato superficiale. |
+| Lineamenti da delaminazione | Parziale | BASF §2, PDF/stampata p. 8 (figure p. 9): 4 cause con rimedi; Mold-Masters §1.6.5 per il rimacinato; Covestro TPU (stampate 26–27) come corroborazione. Un’azione ha ambito per materiale dichiarato. |
 | Colature e filamenti in materozza | Parziale | MM-HR-TROUBLE menziona controllo del drooling e contaminazione cavità in un hot-runner troubleshooting guide; non dimostra cause/rimedi generali o filamenti a ugello. |
 | Piegature / fold marks | Senza riscontro | Nessuna fonte OEM specifica acquisita. |
 | Adesione da sottovuoto | Senza riscontro | La sezione generale demolding non prova il meccanismo specifico del vuoto/venting. |
 | Giunzione stampo non chiusa | Senza riscontro | Nessuna fonte OEM specifica acquisita; resta una verifica attrezzatura/sicurezza, non una correzione di processo. |
 
-Conteggio sulle 24 schede effettivamente presenti: **0 verificate integralmente, 13 parziali, 11 senza riscontro codificato**.
+Conteggio sulle 24 schede effettivamente presenti: **0 verificate integralmente, 15 parziali, 9 senza riscontro codificato; 12 con cause e azioni, 12 senza; 0 validate sul campo**.
 
 ### Tracciabilità delle cause e azioni
 
@@ -208,25 +217,25 @@ Questa matrice specifica cosa è effettivamente sostenuto dalle fonti. Per le pr
 | Linee di flusso / flow marks | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Fronte, temperatura, velocità, gate e finitura restano ipotesi. |
 | Jetting | BASF §7, p. 22: gate non adatto, condizioni di riempimento, salti di spessore (3 cause). | Gate che faccia urtare il melt contro un ostacolo, sezione e raccordo del gate, velocità/temperatura melt, spessori. | Nessun valore per velocità/temperatura; applicabilità per materiale non indicata. |
 | Striature argentate / splay | BASF §16, p. 46 (umidità, perdita d’acqua, condensa) e §18, p. 52 (attrito localizzato). | Misura e essiccazione sotto il limite del prodotto, riparazione perdite, temperatura sotto la tramoggia, sezioni di gate/sprue/hot runner. | Limite di umidità e finestra di temperatura dipendono dal prodotto e non sono indicati; umidità e attrito possono coesistere (richiesta di chiarimento). |
-| Vuoti, bolle e porosità | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Ritiro, gas, umidità, pack e venting restano ipotesi; non sono stati assimilati a sink. |
-| Intrappolamento aria / sfiato | [COV-TPU-PROCESS](https://solutions.covestro.com/-/media/covestro/solution-center/brands/downloads/imported/1557310236.pdf?rev=e83e64d53f8547f081aa8b34384b9b49&hash=63E74D19279864976EE8C513CF9223A9) supporta soltanto il nesso tra aria compressa e burn mark in TPU. | La fonte dà supporto qualitativo al ruolo dello sfiato per quel caso TPU; non specifica dimensionamento/manutenzione dello sfiato. | Altri air trap, sfiati ostruiti, linee di saldatura e interventi sullo stampo non sono dimostrati. |
+| Vuoti, bolle e porosità | BASF §12, p. 38: holding che non compensa il ritiro, accumuli/salti di spessore, assenza di cushion, perdita di pressione o gate in parete sottile (4 cause). | Misura di gate-open prima di agire sulla holding; per i vuoti la fonte indica temperatura stampo più alta (opposto dei sink); interventi di design con il progettista. | Esempi con Ultramid, Ultradur e Ultraform rinforzati; nessun valore; PP/ABS/PC non dimostrati; la prova di foratura sott’acqua è un criterio, non una misura automatica. |
+| Intrappolamento aria / sfiato | BASF §11, p. 34: progetto e gate, decompressione, dosaggio (3 cause); Mold-Masters §1.6.2, p. 1-6: sfiato inadeguato (1 causa). | Flow promoter/retarder e gate con moldflow; decompressione ridotta; contropressione, zona di alimentazione e vite; pulizia sfiati. | Nessun valore; lo sfiato ha solo una fonte hot-runner a polimero non dichiarato; Covestro TPU non trasferibile. |
 | Contaminazione / inclusioni | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Lotto, riciclo, pulizia e filtrazione restano ipotesi. |
 | Degradazione / bruciatura del materiale | BASF §18, p. 52 descrive la degradazione termica del melt (usata nella scheda Burn); scheda dedicata non ancora codificata. | Nessuna azione codificata su questa scheda. | Temperatura, residence, idrolisi, purga e contaminazione restano senza codifica per grade. |
-| Cold slug / materiale freddo al gate | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Gate, pozzetto freddo, canale e temperature restano ipotesi. |
+| Cold slug / materiale freddo al gate | BASF §10, p. 30: temperatura e riscaldamento dell’ugello, colatura, alesaggio senza sformo, punta del gate a tunnel (5 cause). | Temperatura ugello (alzare o abbassare secondo la causa), fasce, decompressione/otturatore/catcher, sformo inverso, angolo del gate. | Finestra di temperatura non indicata; fragilità del grade non classificata; Mold-Masters e Covestro come corroborazione. |
 | Finitura lucida/opaca e brillantezza | L’indice COV-TPU-DEFECTS ha una categoria generale “Color defects” (p. 16); non equivale a gloss/opacità. Nessuna causa specifica è supportata. | Nessuna azione verificata. | Texture, temperatura, contaminazione, venting e gloss restano senza riscontro specifico. |
 | Rugosità anomala / puntinatura | Nessun supporto sufficiente. Un estratto su “specks and dots” non è stato ottenuto con contesto verificabile; non viene usato come citazione. | Nessuna azione verificata. | Morfologia, particelle, pori e finitura restano ipotesi. |
 | Peso fuori specifica | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Dose, cushion, pack, gate freeze e densità restano ipotesi. |
 | Dimensioni fuori tolleranza | COV-TPU-DEFECTS contiene nell’indice la sezione “Defects in dimensions” (p. 4); il titolo prova l’ambito, non una causa specifica. | Nessuna azione verificata dall’indice. | Ritiro, condizionamento, pack, misura e usura non sono collegati a un passaggio leggibile. |
 | Graffi e difetti di estrazione | COV-TPU-DEFECTS contiene nell’indice “Demolding defects” (p. 9) e un risultato indicizzato descrive ejector marks; causa specifica non verificata. | Nessuna azione verificata. | Draft, vuoto, temperatura, raffreddamento ed espulsori non sono ancora collegati a una sezione leggibile. |
-| Lineamenti da delaminazione | COV-TPU-DEFECTS include in un estratto una descrizione: distacco/scagliatura dello strato superficiale, anche in aree estese o localizzate. | Nessuna azione verificata. | Incompatibilità, contaminazione, umidità, degradazione e shear non sono supportati dall’estratto disponibile. |
+| Lineamenti da delaminazione | BASF §2, p. 8: shear eccessivo, contaminazione, masterbatch incompatibile, aria in dosaggio (4 cause); Mold-Masters §1.6.5: rimacinato (1 causa). | Temperatura melt, velocità, sezioni e gate; pulizia; masterbatch con carrier adatto; contropressione e vite. | Aria in dosaggio soprattutto per semicristallini non rinforzati (ambito per materiale applicato nel motore); nessun valore. |
 | Colature e filamenti in materozza | [MM-HR-TROUBLE](https://www.moldmasters.com/sites/default/files/2020-09/Hot%20Runner%20Troubleshooting%20Guide.pdf) tratta il controllo del drooling nel contesto hot-runner; il manuale risulta di 28 pagine e il risultato riporta copyright 2020. | L’estratto supporta il controllo “check for drooling” e un controllo di contaminazione cavità; non fornisce causa/rimedio completo nel frammento. | Non generalizzare a ugelli non hot-runner, stringing, decompressione o cause materiali senza la sezione integrale. |
 | Piegature / fold marks | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Fronti, gate, ostacoli e sovrapposizione con weld line restano ipotesi. |
 | Adesione da sottovuoto | La categoria generale demolding di COV-TPU-DEFECTS non dimostra specificamente un meccanismo di vuoto. | Nessuna azione verificata. | Vacuum, venting, draft e ritiro restano ipotesi distinte non coperte dalla fonte accessibile. |
 | Giunzione stampo non chiusa | Nessuna causa verificata in fonte OEM acquisita. | Nessuna azione verificata. | Setup/clamp/usura/sicurezza restano da supportare con manuale della pressa e documentazione del toolmaker. |
 
-### Cause eseguibili attuali delle otto schede con cause (`src/defects/defectCatalog.ts`)
+### Cause eseguibili attuali delle dodici schede con cause (`src/defects/defectCatalog.ts`)
 
-Fonte per tutte le righe: BASF, *Injection-Molding Problems in Engineering Thermoplastics* (31.07.2009), riletta direttamente il 2026-10-20; PDF = pagina stampata. Ambito dichiarato: engineering thermoplastics. La legenda a p. 70 nomina Ultramid (PA6/PA66/PA6/66/PA6/6T) e non PP/ABS/PC; la guida non associa i rimedi a singoli grade e non fornisce valori utilizzabili come correzione automatica. Un “Sì” conferma solo la condizione scritta nella domanda; non dimostra che sia l’unica causa e ogni azione resta una verifica o una valutazione, mai una correzione automatica. Il campo `materialLimit` di ogni causa riporta il limite per materiale dichiarato dalla fonte (es. “solo non rinforzati”) o l’assenza di limiti indicati.
+Fonti: BASF, *Injection-Molding Problems in Engineering Thermoplastics* (31.07.2009), riletta direttamente il 2026-10-20; per le schede del terzo gruppo anche Mold-Masters, *Hot Runner Troubleshooting Guide* (2020), e Covestro, *Tips for Defect-Free Injection Molding of TPU* (2016), lette dal testo estratto delle sezioni pertinenti e non dal solo indice. PDF = pagina stampata per BASF; per Mold-Masters “PDF p. N / stampata 1-N”; per Covestro le pagine PDF sono doppie pagine (PDF p. 14 = stampate 26–27) e le coppie causa/rimedio sono associate alla descrizione in base al contenuto, perché l’estrazione del testo non conserva il layout a colonne. Ambito dichiarato BASF: engineering thermoplastics; la legenda a p. 70 nomina Ultramid (PA6/PA66/PA6/66/PA6/6T) e non PP/ABS/PC; la guida non associa i rimedi a singoli grade e non fornisce valori utilizzabili come correzione automatica. Mold-Masters è una guida di un fornitore hot-runner con polimero non dichiarato; Covestro vale solo per TPU e non si trasferisce ai materiali dell’app (è usata solo come corroborazione). Un “Sì” conferma solo la condizione scritta nella domanda; non dimostra che sia l’unica causa e ogni azione resta una verifica o una valutazione, mai una correzione automatica. Il campo `materialLimit` di ogni causa riporta il limite per materiale dichiarato dalla fonte o l’assenza di limiti indicati.
 
 | Scheda | ID causa | ID domanda | Condizione che il “Sì” conferma | Sezione BASF | Limiti di applicabilità |
 |---|---|---|---|---|---|
@@ -264,12 +273,32 @@ Fonte per tutte le righe: BASF, *Injection-Molding Problems in Engineering Therm
 | Splay | `mold-water-leak` | `mold-coolant-leak-found` | Perdita d’acqua del circuito di temperatura verso la cavità riscontrata | §16, p. 46 | Depressione sui regolatori solo come soluzione temporanea. |
 | Splay | `hopper-zone-condensation` | `hopper-zone-too-cold` | Zona sotto la tramoggia troppo fredda con condensa visibile | §16, p. 46 | Finestra di temperatura del materiale non indicata. |
 | Splay | `local-friction` | `local-friction-silver-streaks` | Striature argentee limitate a sezioni di flusso ridotte o a ostacoli | §18, p. 52 | Fenomeno distinto dall’umidità. |
+| Voids | `voids-insufficient-holding` | `voids-holding-compensation` | Misura di peso o pressione cavità che indica holding che non compensa il ritiro prima della chiusura del gate | BASF §12, p. 38 | Per i vuoti la fonte indica di aumentare la temperatura stampo, per i sink di ridurla: non trasferire l’azione. Esempi con Ultramid, Ultradur e Ultraform rinforzati. |
+| Voids | `voids-material-accumulation` | `voids-thick-section-or-jump` | Vuoto in corrispondenza di accumulo di materiale o cambio brusco di spessore | BASF §12, p. 38 | Intervento di design. |
+| Voids | `voids-no-cushion` | `voids-no-cushion` | Cushion assente o nullo a fine holding | BASF §12, p. 38 | Nessun limite per materiale dichiarato. |
+| Voids | `voids-pressure-loss-thin-gating` | `voids-pressure-loss` | Forte perdita di pressione in ugello/canali oppure alimentazione in parete sottile | BASF §12, p. 38 | Modifiche di sezione con il costruttore stampo. |
+| Air trap | `air-part-design-gating` | `air-filling-pattern` | Analisi di riempimento o osservazione che indica aria racchiusa dal fronte per forma del pezzo o gate | BASF §11, p. 34 | Prima studio moldflow; esempi con Ultradur rinforzato, Ultramid non rinforzato, Ultrason. |
+| Air trap | `air-screw-decompression` | `air-decompression-excessive` | Corsa o velocità di decompressione eccessive rispetto al riferimento | BASF §11, p. 34 | Accorciare la decompressione può favorire colature (vedi Cold slug). |
+| Air trap | `air-metering-plasticizing` | `air-metering-entrapment` | Contropressione bassa, zona di alimentazione troppo calda o corsa di dosaggio oltre il massimo | BASF §11, p. 34; fig. p. 36 | Caso mostrato con Ultramid non rinforzato; scelta della vite dipendente dal materiale. |
+| Air trap | `air-venting-inadequate` | `air-venting-inadequate` | Sfiati ostruiti o insufficienti osservati nella zona del difetto | Mold-Masters §1.6.2, PDF p. 10 / 1-6 | BASF §11 non tratta lo sfiato; guida hot-runner, polimero non dichiarato. |
+| Cold slug | `cold-slug-nozzle-too-cold` | `cold-slug-nozzle-too-cold` | Temperatura ugello misurata sotto il riferimento di processo | BASF §10, p. 30 | Se c’è colatura la fonte indica di abbassarla: scegliere in base alla causa. Finestra non indicata. |
+| Cold slug | `cold-slug-nozzle-heating` | `cold-slug-nozzle-heating-inadequate` | Ugello non riscaldato o fasce di potenza insufficiente | BASF §10, p. 30 | Nessun limite per materiale dichiarato. |
+| Cold slug | `cold-slug-dripping` | `cold-slug-drooling-observed` | Colatura osservata da ugello o hot runner tra i cicli | BASF §10, p. 30; fig. p. 33 | La decompressione può inglobare aria; corroborazione Mold-Masters §1.6.3 (cold slug area). |
+| Cold slug | `cold-slug-bore-without-draft` | `cold-slug-bore-without-draft` | Alesaggio dell’ugello privo di sformo | BASF §10, p. 30 | Intervento sulla macchina con il costruttore. |
+| Cold slug | `cold-slug-tunnel-gate-fragment` | `cold-slug-tunnel-gate-fragment` | Punta del gate a tunnel che si rompe e rientra in cavità | BASF §10, p. 30 | Gate a tunnel da evitare per plastiche fragili; fragilità del grade non classificata dall’app. |
+| Delaminazione | `delam-excessive-shear` | `delam-shear-cold-melt` | Dati che indicano shear elevato nel melt freddo (stampo freddo, gate stretto, velocità alta) | BASF §2, p. 8 | Semicristallini e amorfi trattati; nessun valore per grade. |
+| Delaminazione | `delam-contamination` | `delam-contamination-found` | Contaminazione da materiale estraneo riscontrata in macchina, tramoggia o hot runner | BASF §2, p. 8 | Nessuna procedura di spurgo indicata. |
+| Delaminazione | `delam-masterbatch` | `delam-masterbatch-incompatible` | Masterbatch non compatibile con il polimero | BASF §2, p. 8 | Compatibilità da confermare con il produttore del colorante. |
+| Delaminazione | `delam-air-metering-skins` | `delam-skins-air-metering` | Pellicole sottili staccabili e dato di ingresso d’aria in dosaggio | BASF §2, p. 8; fig. p. 9 | `materialScope`: soprattutto semicristallini non rinforzati (PP, PA6, PA66 senza fibra); altrimenti applicabilità non dimostrata. |
+| Delaminazione | `delam-regrind` | `delam-regrind-high` | Percentuale di rimacinato alta rispetto al riferimento del produttore | Mold-Masters §1.6.5, PDF p. 13 / 1-9 | Guida hot-runner; nessun valore. |
 
-Le quattro schede Warpage, Weld line, Jetting e Splay hanno inoltre domande di contesto senza causa (`causeId: null`) con ID espliciti: `warpage.deviation-measured`, `warpage.side-cavity-difference`, `weld_line.strength-measured`, `weld_line.location-vs-gate`, `jetting.starts-at-gate`, `jetting.first-fill-phase-only`, `splay.persists-after-documented-drying`, `splay.all-cavities-or-single-point`, `splay.parabolic-streaks-flow-direction`. Non producono cause né azioni.
+Le schede con cause hanno inoltre domande di contesto senza causa (`causeId: null`) con ID espliciti: `warpage.deviation-measured`, `warpage.side-cavity-difference`, `weld_line.strength-measured`, `weld_line.location-vs-gate`, `jetting.starts-at-gate`, `jetting.first-fill-phase-only`, `splay.persists-after-documented-drying`, `splay.all-cavities-or-single-point`, `splay.parabolic-streaks-flow-direction`, `voids.internal-or-surface`, `voids.thick-center-or-gate`, `voids.water-drill-test-penetrates`, `air_trap.air-pocket-verified`, `cold_slug.near-gate`, `cold_slug.cold-slug-well-present`, `delamination.layers-separable`, `delamination.materials-additives-known`. Non producono cause né azioni; “Non so” è sempre una risposta valida e il pin sul CAD non attribuisce mai una causa.
+
+**Materiale e raccomandazioni.** Ogni raccomandazione generata dal motore riporta per esteso il `materialLimit` della causa (o l’ambito generale della fonte se la causa non ne ha uno) e lo espone in `metadata.materialLimit`; la pagina Difetti mostra lo stesso limite nell’elenco delle cause, insieme alle altre fonti di corroborazione. Quando una causa ha un `materialScope` dichiarato dalla fonte (`unreinforced` o `glass-fiber`, eventualmente `semiCrystalline`; `only` o `mainly`) e il materiale selezionato nel wizard è incompatibile, la raccomandazione inizia con “Fuori ambito per …” (`only`) o “Applicabilità non dimostrata per …” (`mainly`), è riportata come riferimento della fonte “non applicabile senza riserve”, perde 30 punti di priorità e ha `metadata.materialApplicability = 'outside-scope'`. Senza materiale selezionato chiede di selezionarlo (`unknown-material`). Cause con `materialScope`: Warpage `uneven-mold-temperature` (non rinforzati, `mainly`), `high-pressure-gradient` (non rinforzati, `only`), `fiber-orientation-variation` (fibra di vetro, `only`); Delaminazione `delam-air-metering-skins` (non rinforzati e semicristallini, `mainly`). La classificazione semicristallina dei materiali dell’app (PP, PA6, PA66) è una convenzione interna, non un dato della fonte.
 
 **Fenomeni che possono coesistere (Burn: diesel, degradazione termica, shear; Splay: umidità e attrito).** Nessuna risposta ne esclude un’altra e le cause dichiarate restano tutte diagnosticate. Se per lo stesso pin sono dichiarati “Sì” due dei fenomeni del gruppo, la pagina mostra una richiesta di chiarimento (`role="status"`) e il motore aggiunge la raccomandazione `defect-clarification:*`: chiede se i fenomeni riguardano zone o segni diversi (in tal caso un pin per ciascuno) e, solo se riguardano lo stesso segno, propone il controllo discriminante su aspetto e posizione secondo BASF §3, §16 e §18. Non si conclude che siano incompatibili.
 
-**Risposte salvate e ID ritirati.** Le risposte correnti vivono solo nello stato della pagina; in `localStorage` (`future-molding-defect-evaluations-v1`, versione 1) restano come storico nelle valutazioni e non rientrano nella diagnosi. La migrazione v1 usa solo la mappa storica esplicita e immutabile `LEGACY_QUESTION_ID_MAP` (vecchio ID `<scheda>-qN` → ID attuale della stessa domanda), valida soltanto per la scheda con quel prefisso: `warpage-q1` non è accettato come domanda di Jetting. Ogni ID non riconosciuto, compreso `catalog-question-N` perché privo di prefisso, resta in `legacyAnswers`. Se esistono sia il vecchio sia l’attuale ID, prevale la risposta dell’ID attuale e la vecchia resta in `legacyAnswers`. Riordinare o inserire domande nel catalogo non cambia la conversione. Non sono trasferite le risposte alle domande il cui significato è cambiato: `low-injection-speed`, `localized-end-fill`, `thermal-damage` (domanda combinata, non assegnata alle nuove cause termica e shear), `tool-fit`, `gate-open-measured` (un “Sì” indicava solo la misura eseguita). La pagina chiede di rispondere alle nuove domande.
+**Risposte salvate e ID ritirati.** Le risposte correnti vivono solo nello stato della pagina; in `localStorage` (`future-molding-defect-evaluations-v1`, versione 1) restano come storico nelle valutazioni e non rientrano nella diagnosi. La migrazione v1 usa solo la mappa storica esplicita e immutabile `LEGACY_QUESTION_ID_MAP` (vecchio ID `<scheda>-qN` → ID attuale della stessa domanda), valida soltanto per la scheda con quel prefisso: `warpage-q1` non è accettato come domanda di Jetting. Ogni ID non riconosciuto, compreso `catalog-question-N` perché privo di prefisso, resta in `legacyAnswers`. Se esistono sia il vecchio sia l’attuale ID, prevale la risposta dell’ID attuale e la vecchia resta in `legacyAnswers`. Riordinare o inserire domande nel catalogo non cambia la conversione. Non sono trasferite le risposte alle domande il cui significato è cambiato: `low-injection-speed`, `localized-end-fill`, `thermal-damage` (domanda combinata, non assegnata alle nuove cause termica e shear), `tool-fit`, `gate-open-measured` (un “Sì” indicava solo la misura eseguita). Sono inoltre uscite dal catalogo `air_trap.vent-obstruction-observed` (sostituita dalla causa `air-venting-inadequate`) e `cold_slug.cold-well-checked` (formulata come “è stato verificato”): le risposte `air_trap-q1` e `cold_slug-q2` restano in `legacyAnswers`. La pagina chiede di rispondere alle nuove domande.
 
 ### Mancato riempimento
 - ID/sinonimi: `short-shot`, `short_shot`, `SHORT_SHOT`, `short shot`, `Incompletezza`, `Cicca / Incompleto`, `cicca_incompleto`, `Riempimento incompleto`, `Mancanza`, `pezzi mancanti`.
@@ -332,20 +361,18 @@ Le quattro schede Warpage, Weld line, Jetting e Splay hanno inoltre domande di c
 - Lacune: umidità e attrito possono coesistere: la pagina chiede il chiarimento su zone o segni diversi.
 
 ### Vuoti, bolle e porosità
-- ID/sinonimi: `voids`, `bolle_aria`, bolle, vuoti, porosità, `materiale_degradato` (da distinguere).
-- Sintomi/domande: cavità interne o bolla superficiale? Posizione al centro di sezioni spesse o presso gate? Gas/umidità o vuoto da ritiro?
-- Cause probabili: ritiro non compensato, umidità/volatili, degradazione, aria intrappolata.
-- Azioni ordinate: processo: correlare con pack/gate freeze; materiale: essiccazione e contaminazione; stampo: sfiati, gate, spessori e raffreddamento.
-- Ricalcolo: manuale finché il tipo di vuoto non è identificato; non aumentare pack automaticamente senza limite pressione e prova sul pezzo.
-- Fonte OEM richiesta: resina (drying, volatili, shrinkage) e stampo (venting/gate). Stato: pending.
+- ID/sinonimi: `voids`, `bolle_aria`, bolle, vuoti, porosità; la scheda si chiama ora “Vuoti interni (voids)” e conserva gli alias storici.
+- Stato: 4 cause BASF §12 (p. 38; figure p. 39) con corroborazione Mold-Masters §1.6.15; domande di contesto con ID espliciti, compresa la prova di foratura sott’acqua. Verifica documentale parziale.
+- Distinzioni: il sink è una depressione superficiale (§5), il vuoto è una cavità nel centro fuso della parete (§12), le bolle d’aria possono stare vicino alla parete e seguire il flusso (§11, scheda Intrappolamento aria). Per i vuoti BASF indica di aumentare la temperatura stampo, per i sink di ridurla: l’azione non si trasferisce.
+- Automazione: nessuna; nessun valore di holding o temperatura.
+- Lacune: esempi BASF solo con Ultramid, Ultradur e Ultraform rinforzati; nessun valore; il pin non indica la causa.
 
 ### Intrappolamento aria / sfiato
-- ID/sinonimi: `sfiato`, air trap, linee aria, soffiature, aria intrappolata.
-- Sintomi/domande: difetto in fine riempimento o punto cieco? Presenza di bruciatura, bolla o mancato riempimento nella stessa zona?
-- Cause probabili: sfiati assenti/ostruiti, fronti che chiudono una tasca, velocità locale.
-- Azioni ordinate: processo: osservare sequenza di riempimento; materiale: distinguere volatili; stampo: ispezione e progettazione sfiato da parte del toolmaker.
-- Ricalcolo: escluso come correzione automatica del setpoint; è primariamente verifica/manutenzione stampo.
-- Fonte OEM richiesta: manuale stampo e guida pressa sul profilo; fonte produttore materiale se vi sono gas/volatili. Stato: pending.
+- ID/sinonimi: `air_trap`, sfiato, sfiati, air trap, linee aria, soffiature, aria intrappolata.
+- Stato: 3 cause BASF §11 (p. 34; figure pp. 35–37): progetto/gate, decompressione, dosaggio; 1 causa da Mold-Masters §1.6.2 per lo sfiato, che BASF §11 non tratta. Corroborazione Covestro TPU solo come riferimento.
+- Distinzioni: se l’aria compressa brucia il materiale a fine riempimento il fenomeno è l’effetto diesel (scheda Burn); le bolle d’aria, a differenza dei vuoti, possono stare vicino alla parete.
+- Automazione: nessuna.
+- Lacune: nessun valore di decompressione, contropressione o sfiato; la sola fonte per lo sfiato è una guida hot-runner con polimero non dichiarato.
 
 ### Contaminazione / inclusioni
 - ID/sinonimi: `inclusioni`, inclusioni, contaminazioni, particelle estranee.
@@ -365,11 +392,10 @@ Le quattro schede Warpage, Weld line, Jetting e Splay hanno inoltre domande di c
 
 ### Cold slug / materiale freddo al gate
 - ID/sinonimi: `cold_slug`, cold slug, gelo, massa fredda visibile.
-- Sintomi/domande: inclusione/segno vicino al gate? Il pozzetto freddo è presente e dimensionato? Ricorre a ogni ciclo?
-- Cause probabili: pozzo freddo/gate, canale o ugello sotto finestra, purge/start-up.
-- Azioni ordinate: processo: registrare avviamento e temperature; materiale: verificare finestra; stampo: pozzetto freddo e alimentazione.
-- Ricalcolo: manuale; non aumentare melt automaticamente senza range del grade e misura temperatura.
-- Fonte OEM richiesta: guida resina e costruttore stampo su cold slug well/gate. Stato: pending.
+- Stato: 5 cause BASF §10 (p. 30; figure pp. 31–33) con corroborazione Mold-Masters §1.6.3 e Covestro TPU. Le azioni sulla temperatura dell’ugello sono opposte tra “ugello freddo” e “colatura”: la scelta dipende dalla causa riscontrata.
+- Distinzioni: può creare una weld line o bloccare il gate con riempimento incompleto (conseguenze); il jetting parte dal gate come getto sinuoso (§7) e non è un cold slug.
+- Automazione: nessuna.
+- Lacune: finestra di temperatura dell’ugello non indicata; fragilità del grade non classificata dall’app per l’avvertenza sul gate a tunnel.
 
 ### Finitura lucida/opaca e brillantezza
 - ID/sinonimi: `lucido_opaco`, `difetti_brillantezza`, `superficie_opaca`, `superficie_lucida`, opacità, gloss non uniforme.
@@ -412,12 +438,11 @@ Le quattro schede Warpage, Weld line, Jetting e Splay hanno inoltre domande di c
 - Fonte OEM richiesta: manuale stampo e guida resina su shrinkage/ejection. Stato: pending.
 
 ### Lineamenti da delaminazione
-- ID/sinonimi: `delaminazione`, `delamin`, `delam`, strati, separazione superficiale.
-- Sintomi/domande: strati separabili o solo linea superficiale? Compare con materiale riciclato/additivi? Resistenza ridotta?
-- Cause probabili: incompatibilità/contaminazione, umidità, degradazione, shear o condizioni di processo.
-- Azioni ordinate: processo: verificare history e pulizia; materiale: compatibilità e lotto; macchina/stampo: contaminazione e ristagni.
-- Ricalcolo: escluso senza identificazione materiale e analisi causa.
-- Fonte OEM richiesta: compatibilità/handling specifici dei produttori dei polimeri coinvolti. Stato: pending.
+- ID/sinonimi: `delamination`, delaminazione, delamin, delam, strati, separazione superficiale.
+- Stato: 4 cause BASF §2 (p. 8; figure p. 9) e 1 da Mold-Masters §1.6.5 (rimacinato), con corroborazione Covestro TPU (PDF p. 14). Un’azione ha `materialScope` (aria in dosaggio, soprattutto semicristallini non rinforzati).
+- Distinzioni: non confondere con graffi da estrazione o striature da umidità.
+- Automazione: nessuna.
+- Lacune: nessun valore di processo; compatibilità del masterbatch da confermare con il produttore; il rimacinato non ha riferimento numerico.
 
 ### Colature e filamenti in materozza
 - ID/sinonimi: colature di materiale, drool, filamenti/stringing, filamenti nella materozza.

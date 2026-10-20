@@ -1,4 +1,4 @@
-﻿import { RETIRED_QUESTION_IDS, DEFECT_CATALOG, migrateStoredAnswers, resolveDefectCatalogEntry } from './defectCatalog'
+﻿import { RETIRED_QUESTION_IDS, LEGACY_QUESTION_ID_MAP, DEFECT_CATALOG, migrateStoredAnswers, resolveDefectCatalogEntry } from './defectCatalog'
 import { migrateDefectsState } from '../stores/defectsStore'
 import { detectClarificationRequests } from '../engine/knowledge/defectContext'
 import { diagnose } from '../engine/knowledge/diagnosisEngine'
@@ -32,15 +32,17 @@ describe('stored answers with legacy question IDs', () => {
   })
 
   test('every historical key carries its own scheda prefix and points to a current question of that scheda', () => {
-    for (const entry of DEFECT_CATALOG.filter((item) => !['short_shot', 'burn_mark', 'flash', 'sink'].includes(item.id))) {
-      const probe = Object.fromEntries([1, 2].map((n) => [`${entry.id}-q${n}`, 'yes' as const]))
+    for (const [entryId, table] of Object.entries(LEGACY_QUESTION_ID_MAP)) {
+      const entry = resolveDefectCatalogEntry(entryId)!
+      for (const key of Object.keys(table)) expect(key.startsWith(`${entry.id}-q`)).toBe(true)
+      const probe = Object.fromEntries(Object.keys(table).map((key) => [key, 'yes' as const]))
       const migrated = migrateStoredAnswers(entry.id, probe)
       const current = new Set(entry.diagnosticQuestions.map((question) => question.id))
       for (const id of Object.keys(migrated.answers)) {
         expect(id.startsWith(`${entry.id}.`)).toBe(true)
         expect(current.has(id)).toBe(true)
       }
-      expect(Object.keys(migrated.answers)).toHaveLength(2)
+      expect(Object.keys(migrated.answers)).toHaveLength(Object.keys(table).length)
     }
   })
 

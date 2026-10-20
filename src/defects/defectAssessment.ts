@@ -51,6 +51,7 @@ export function buildDefectKnowledgeContext(input: {
   severity: 'low' | 'medium' | 'high'
   pin: DefectMeshPin
   answers: Record<string, OperatorAnswer>
+  material?: { id: string; name: string; family: string | null; gfPct: number | null } | null
   volumeCm3: number | null
   boundingBoxMm: { x: number; y: number; z: number } | null
   rawResult?: Record<string, unknown> | null
@@ -86,6 +87,7 @@ export function buildDefectKnowledgeContext(input: {
         drawingVersion: input.pin.drawingVersion,
       },
       answers: { ...input.answers },
+      material: input.material ?? null,
       geometry: {
         volumeCm3: input.volumeCm3,
         boundingBoxMm: input.boundingBoxMm ? { ...input.boundingBoxMm } : null,
