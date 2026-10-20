@@ -3,7 +3,8 @@ import { useDrawingStore } from "../stores/drawingStore";
 import { useParametriStore } from "../stores/parametriStore";
 import { useDefectsStore } from "../stores/defectsStore";
 import ThreeViewer from "../components/ThreeViewer";
-import { DEFECT_PAGE_CATALOG, resolveDefectIntegration } from "../defects/defectAdapter";
+import { resolveDefectIntegration } from "../defects/defectAdapter";
+import { findDefectCatalogEntries, resolveDefectCatalogEntry } from "../defects/defectCatalog";
 import { inferKnowledgeRecommendations } from "../engine/knowledge/knowledgeEngine";
 import type { KnowledgeResult } from "../engine/knowledge/types";
 import { getContextualDefectProfile, type OperatorAnswer } from "../engine/knowledge/defectContext";
@@ -19,6 +20,7 @@ export default function DifettiPage() {
   const [interventionTried, setInterventionTried] = useState('');
   const [placementMode, setPlacementMode] = useState(false);
   const [selectedMeshPinId, setSelectedMeshPinId] = useState<string | null>(null);
+  const [catalogSearch, setCatalogSearch] = useState('');
 
   // Severity selection (store)
   const selectedSeverity = useDefectsStore((s) => s.selectedSeverity)
@@ -48,12 +50,14 @@ export default function DifettiPage() {
   const lastDefectFix = useParametriStore((s) => s.lastDefectFix);
   const [knowledgeResult, setKnowledgeResult] = useState<KnowledgeResult | null>(null);
 
-  const defectIntegration = resolveDefectIntegration(selectedDefectId);
-  const profile = getContextualDefectProfile(defectIntegration?.id);
-  const activeMeshPins = meshPins.filter((pin) => pin.drawingId === drawingId && pin.drawingVersion === drawingId && pin.defectId === defectIntegration?.id);
+  const catalogEntry = resolveDefectCatalogEntry(selectedDefectId);
+  const defectIntegration = resolveDefectIntegration(catalogEntry?.id);
+  const profile = getContextualDefectProfile(catalogEntry?.id);
+  const visibleCatalogEntries = findDefectCatalogEntries(catalogSearch);
+  const activeMeshPins = meshPins.filter((pin) => pin.drawingId === drawingId && pin.drawingVersion === drawingId && pin.defectId === catalogEntry?.id);
   const selectedMeshPin = activeMeshPins.find((pin) => pin.id === selectedMeshPinId) ?? activeMeshPins[0] ?? null;
-  const caseId = drawingId && defectIntegration?.id && selectedMeshPin
-    ? buildDefectCaseId(drawingId, defectIntegration.id, selectedMeshPin.id)
+  const caseId = drawingId && catalogEntry && selectedMeshPin
+    ? buildDefectCaseId(drawingId, catalogEntry.id, selectedMeshPin.id)
     : null;
   const answers = caseId ? answersByCase[caseId] ?? EMPTY_ANSWERS : EMPTY_ANSWERS;
   const currentCase = evaluations.find((item) => item.caseId === caseId);
@@ -75,7 +79,7 @@ export default function DifettiPage() {
   }, [caseId, previousEvaluation?.severityAfter, selectedSeverity]);
 
   useEffect(() => {
-    if (!selectedDefectId || !defectIntegration || !selectedMeshPin || !profile) {
+    if (!selectedDefectId || !catalogEntry || !selectedMeshPin) {
       setKnowledgeResult(null);
       return;
     }
@@ -88,7 +92,7 @@ export default function DifettiPage() {
 
     const context = buildDefectKnowledgeContext({
       drawingId,
-      defectId: defectIntegration.id,
+      defectId: catalogEntry.id,
       severity: levelToSeverity(selectedMeshPin.severity),
       pin: selectedMeshPin,
       answers,
@@ -108,16 +112,16 @@ export default function DifettiPage() {
     });
 
     return () => { cancelled = true };
-  }, [answers, boundingBox, drawingId, defectIntegration?.id, defectIntegration?.pinId, geometryAvailable, profile, result, selectedDefectId, selectedMeshPin?.id, selectedSeverity, validBoundingBox, validVolume]);
+  }, [answers, boundingBox, catalogEntry?.id, drawingId, geometryAvailable, result, selectedDefectId, selectedMeshPin?.id, selectedSeverity, validBoundingBox, validVolume]);
 
-  const selectedLabel = DEFECT_PAGE_CATALOG.find((item) => item.id === selectedDefectId)?.label ?? selectedDefectId;
+  const selectedLabel = catalogEntry?.nameIt ?? selectedDefectId;
   const placeMeshPin = (position: { x: number; y: number; z: number }) => {
-    if (!drawingId || !defectIntegration) return;
+    if (!drawingId || !catalogEntry) return;
     const pin: DefectMeshPin = {
       id: `pin_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       drawingId,
       drawingVersion: drawingId,
-      defectId: defectIntegration.id,
+      defectId: catalogEntry.id,
       severity: severityToLevel(selectedSeverity),
       position: { ...position },
       coordinateFrame: 'model-local',
@@ -130,14 +134,14 @@ export default function DifettiPage() {
   };
 
   const saveEvaluation = () => {
-    if (!caseId || !drawingId || !defectIntegration || !selectedMeshPin) return;
+    if (!caseId || !drawingId || !catalogEntry || !selectedMeshPin) return;
     const parsedAfter = Number(severityAfter) as 0 | 1 | 2 | 3;
     if (![0, 1, 2, 3].includes(parsedAfter) || interventionTried.trim().length < 3) return;
     const parsedBefore = previousEvaluation?.severityAfter ?? selectedMeshPin.severity;
     recordEvaluation({
       caseId,
       drawingId,
-      defectId: defectIntegration.id,
+      defectId: catalogEntry.id,
       pinId: selectedMeshPin.id,
       reportedSeverity: selectedMeshPin.severity,
       pinPosition: { ...selectedMeshPin.position },
@@ -172,7 +176,17 @@ export default function DifettiPage() {
           <option value="high">Alta</option>
         </select>
 
-        {DEFECT_PAGE_CATALOG.map((def) => (
+        <label className="mt-3 block text-sm font-medium text-slate-700" htmlFor="defect-catalog-search">Cerca nel catalogo</label>
+        <input
+          id="defect-catalog-search"
+          aria-label="Cerca difetti"
+          className="mt-1 mb-3 w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+          value={catalogSearch}
+          onChange={(event) => setCatalogSearch(event.target.value)}
+          placeholder="Nome o sinonimo"
+        />
+
+        {visibleCatalogEntries.map((def) => (
           <div
             key={def.id}
             className={`p-2 mb-2 rounded cursor-pointer ${
@@ -180,18 +194,48 @@ export default function DifettiPage() {
             }`}
             onClick={() => {
               setSelectedDefectId(def.id)
+              setSelectedMeshPinId(null)
               try { setSelectedDefectIdStore(def.id) } catch (_) {}
             }}
           >
-            {def.label}
+            <span>{def.nameIt}</span>
+            <span className="ml-2 text-[10px] text-gray-500">{def.verificationStatus === 'partial' ? 'parziale' : def.verificationStatus === 'unverified' ? 'senza riscontro' : 'verificata nel campo fonte'}</span>
           </div>
         ))}
 
+        {visibleCatalogEntries.length === 0 && <p className="text-xs text-gray-600">Nessun difetto corrisponde alla ricerca.</p>}
+
         <div className="mt-6 text-sm text-gray-700">
           {selectedDefectId
-            ? DEFECT_PAGE_CATALOG.find((d) => d.id === selectedDefectId)?.desc
+            ? catalogEntry?.description
             : "Seleziona un difetto per evidenziare la zona sul modello."}
         </div>
+
+        {catalogEntry && (
+          <section className="mt-3 space-y-2 border-t border-gray-300 pt-3 text-xs" aria-label="Scheda catalogo">
+            <p><strong>Sinonimi:</strong> {catalogEntry.synonymsIt.join(', ') || 'Nessuno censito'}</p>
+            <p><strong>Fonte:</strong> {catalogEntry.verificationStatus}; <strong>automazione:</strong> {catalogEntry.automationStatus === 'proposed' ? 'proposta esistente, non validata' : catalogEntry.automationStatus === 'manual' ? 'manuale' : 'disabilitata'}</p>
+            <p><strong>Gravità 1:</strong> {catalogEntry.severityCriteria[1]}</p>
+            <p><strong>Gravità 2:</strong> {catalogEntry.severityCriteria[2]}</p>
+            <p><strong>Gravità 3:</strong> {catalogEntry.severityCriteria[3]}</p>
+            {catalogEntry.semanticCautions?.map((caution) => <p key={caution}><strong>Distinzione:</strong> {caution}</p>)}
+            <div>
+              <strong>Cause probabili e azioni ordinate</strong>
+              {catalogEntry.probableCauses.length > 0 ? (
+                <ol className="mt-1 list-decimal pl-5">
+                  {catalogEntry.probableCauses.map((cause) => (
+                    <li key={cause.id} className="mt-1">{cause.title}: {cause.action} <span className="text-gray-500">({cause.domain}; {cause.sourceReference})</span></li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="mt-1 text-amber-800">Non disponibili: nessuna fonte consultata supporta cause e azioni tecniche per questa scheda/materiale.</p>
+              )}
+            </div>
+            {catalogEntry.sources.length > 0
+              ? catalogEntry.sources.map((source, index) => <p key={`${source.publisher}-${index}`}><strong>Fonte:</strong> {source.publisher}, {source.title}, {source.reference}. Supporta: {source.supports}. Limite: {source.limit}</p>)
+              : <p><strong>Fonti:</strong> nessun riscontro tecnico acquisito per cause/azioni.</p>}
+          </section>
+        )}
 
         {selectedDefectId && (
           <button
@@ -206,7 +250,7 @@ export default function DifettiPage() {
           </button>
         )}
 
-        {defectIntegration && (
+        {catalogEntry && defectIntegration && (
           <section className="mt-4 border-t border-gray-300 pt-3 text-sm" aria-live="polite">
             <strong>{defectIntegration.automatic ? "Correzione proposta da verificare" : "Verifica manuale"}</strong>
             <p className="mt-1 text-gray-700">
@@ -233,21 +277,30 @@ export default function DifettiPage() {
               <p className="mt-1 text-xs text-amber-800">Geometria CAD attendibile non disponibile; non viene usata per inferire cause.</p>
             )}
 
-            {profile && (
+            {catalogEntry.symptoms.length > 0 && (
+              <div className="mt-3">
+                <strong className="block">Sintomi da osservare</strong>
+                <ul className="mt-1 list-disc pl-5">{catalogEntry.symptoms.map((symptom) => <li key={symptom}>{symptom}</li>)}</ul>
+              </div>
+            )}
+
+            {catalogEntry.diagnosticQuestions.length > 0 && (
               <div className="mt-3 space-y-3">
                 <strong className="block">Verifiche mirate</strong>
-                {profile.causes.map((cause) => (
-                  <label key={cause.questionId} className="block text-xs text-gray-800">
-                    <span>{cause.question}</span>
+                {catalogEntry.diagnosticQuestions.map((question, index) => {
+                  const questionId = profile?.probableCauses[index]?.questionId ?? `catalog-question-${index}`
+                  return (
+                  <label key={questionId} className="block text-xs text-gray-800">
+                    <span>{question}</span>
                     <select
-                      aria-label={cause.question}
+                      aria-label={question}
                       className="mt-1 w-full rounded border border-gray-400 bg-white px-2 py-1"
-                      value={answers[cause.questionId] ?? 'unknown'}
+                      value={answers[questionId] ?? 'unknown'}
                       onChange={(event) => {
                         if (!caseId) return;
                         setAnswersByCase((current) => ({
                           ...current,
-                          [caseId]: { ...(current[caseId] ?? {}), [cause.questionId]: event.target.value as OperatorAnswer },
+                          [caseId]: { ...(current[caseId] ?? {}), [questionId]: event.target.value as OperatorAnswer },
                         }));
                       }}
                     >
@@ -256,8 +309,13 @@ export default function DifettiPage() {
                       <option value="no">No</option>
                     </select>
                   </label>
-                ))}
+                  )
+                })}
               </div>
+            )}
+
+            {catalogEntry.probableCauses.length === 0 && (
+              <p className="mt-2 text-xs text-amber-800">Scheda incompleta: le risposte vengono registrate, ma non producono cause o azioni tecniche non verificate.</p>
             )}
 
             <div className="mt-4 border-t border-gray-200 pt-3">
@@ -373,6 +431,12 @@ export default function DifettiPage() {
         {knowledgeResult && (knowledgeResult.diagnosis.length > 0 || knowledgeResult.recommendations.length > 0) && (
           <div className="mt-4 border-t border-gray-200 pt-3 text-sm">
             <strong>Cause probabili e verifiche</strong>
+            {knowledgeResult.diagnosis.filter((item) => item.id.startsWith('catalog-status:')).map((item) => (
+              <div key={item.id} className="mt-2 border-l-2 border-amber-500 pl-2 text-xs text-amber-900">
+                <strong>{item.title}</strong>
+                <p>{item.description}</p>
+              </div>
+            ))}
             {knowledgeResult.diagnosis.filter((item) => item.id.startsWith('defect-cause:')).map((item) => (
               <div key={item.id} className="mt-3 border-t border-gray-200 pt-2">
                 <div className="font-medium">{item.title}</div>

@@ -10,7 +10,7 @@ export async function recommend(
 
   const profile = getContextualDefectProfile(context.defectContext?.defectId)
   if (profile) {
-    for (const [index, cause] of profile.causes.entries()) {
+    for (const cause of profile.probableCauses) {
       const answer = context.defectContext?.answers?.[cause.questionId] ?? 'unknown'
       if (answer === 'no') continue
       const declared = answer === 'yes'
@@ -21,9 +21,12 @@ export async function recommend(
         reason: declared
           ? `${cause.action} Condizione dichiarata dall’operatore; verifica prima di intervenire.`
           : `Risposta attuale “Non so”: ${cause.question} Se il controllo conferma questa causa, valuta solo allora: ${cause.action} Nessuna correzione automatica è applicata.`,
-        priority: (declared ? 80 : 50) - index,
+        priority: (declared ? 80 : 50) - cause.order,
         metadata: {
           provenance: declared ? 'operator-declared' : 'estimated',
+          catalogId: profile.id,
+          verificationStatus: profile.verificationStatus,
+          evidenceStatus: cause.evidenceStatus,
           source: cause.source,
           sourceReference: cause.sourceReference,
           questionId: cause.questionId,
@@ -32,14 +35,6 @@ export async function recommend(
         },
       })
     }
-  } else if (diagnosis.some((item) => item.id === 'defect-report')) {
-    recommendations.push({
-      id: 'adjust-defect-parameters',
-      target: 'processParameters',
-      action: 'investigate',
-      reason: 'Rivedere i parametri di processo in presenza di un difetto identificato.',
-      priority: 80,
-    })
   }
 
   if (context.recipeFingerprint && similarCases.length > 0) {

@@ -1,6 +1,7 @@
 import { applyDefectFix, type DefectId, type DefectSeverity } from "./defectRules";
 import { normalizeCorrections } from "../lib/normalizeOutput";
 import type { AppliedCorrection } from "../types/appliedCorrection";
+import { DEFECT_CATALOG } from "./defectCatalog";
 
 export type LegacyDefectId = string | null | undefined;
 
@@ -50,12 +51,11 @@ const DEFECT_INTEGRATIONS: readonly DefectIntegration[] = [
   },
 ];
 
-export const DEFECT_PAGE_CATALOG = [
-  { id: "short-shot", label: "Short Shot", desc: "Riempimento incompleto del pezzo." },
-  { id: "burn-mark", label: "Burn Mark", desc: "Bruciature dovute ad aria intrappolata." },
-  { id: "flash", label: "Bava / Sormonto", desc: "Materiale in eccesso oltre lo split-line." },
-  { id: "sink-mark", label: "Affossamento", desc: "Ritiro locale dovuto a spessore alto." },
-] as const;
+export const DEFECT_PAGE_CATALOG = DEFECT_CATALOG.map((entry) => ({
+  id: entry.id,
+  label: entry.nameIt,
+  desc: entry.description,
+}))
 
 function normalizeDefectId(id: LegacyDefectId): string | null {
   if (!id) return null;

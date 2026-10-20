@@ -1,5 +1,6 @@
 import type { KnowledgeContext, Diagnosis, SimilarCase } from './types'
 import { getContextualDefectProfile } from './defectContext'
+import { resolveDefectCatalogEntry } from '@/defects/defectCatalog'
 
 export async function diagnose(
   context: KnowledgeContext,
@@ -11,7 +12,7 @@ export async function diagnose(
   if (hasDefect) {
     const profile = getContextualDefectProfile(context.defectContext?.defectId)
     if (profile) {
-      for (const cause of profile.causes) {
+      for (const cause of profile.probableCauses) {
         const answer = context.defectContext?.answers?.[cause.questionId] ?? 'unknown'
         if (answer === 'no') continue
         const declared = answer === 'yes'
@@ -27,6 +28,9 @@ export async function diagnose(
           source: cause.source,
           metadata: {
             provenance: declared ? 'operator-declared' : 'estimated',
+            catalogId: profile.id,
+            verificationStatus: profile.verificationStatus,
+            evidenceStatus: cause.evidenceStatus,
             sourceReference: cause.sourceReference,
             questionId: cause.questionId,
             answer,
@@ -41,14 +45,27 @@ export async function diagnose(
         })
       }
     } else {
+      const catalogEntry = resolveDefectCatalogEntry(context.defectContext?.defectId)
       diagnosis.push({
-        id: 'defect-report',
-        title: 'Segnalazione difetto da verificare',
-        description: 'È presente una segnalazione; il catalogo non contiene una diagnosi contestuale per questo ID.',
-        score: 20,
+        id: catalogEntry ? `catalog-status:${catalogEntry.id}` : 'defect-report',
+        title: catalogEntry ? `${catalogEntry.nameIt}: scheda ${catalogEntry.verificationStatus === 'partial' ? 'parziale' : 'non verificata'}` : 'Segnalazione difetto da verificare',
+        description: catalogEntry
+          ? 'Sono disponibili descrizione e verifiche operatore; mancano evidenze tecniche sufficienti per formulare cause o azioni. Le risposte non attivano raccomandazioni automatiche.'
+          : 'È presente una segnalazione non riconosciuta dal catalogo.',
+        score: 0,
         severity: 'low',
-        tags: ['defect', 'unverified'],
-        source: 'diagnosisEngine',
+        tags: ['defect', catalogEntry?.verificationStatus ?? 'unverified'],
+        source: catalogEntry ? 'defectCatalog' : 'diagnosisEngine',
+        metadata: {
+          provenance: 'catalog-status',
+          catalogId: catalogEntry?.id ?? null,
+          verificationStatus: catalogEntry?.verificationStatus ?? 'unverified',
+          automationStatus: catalogEntry?.automationStatus ?? 'disabled',
+          drawingId: context.defectContext?.drawingId ?? null,
+          drawingVersion: context.defectContext?.pin?.drawingVersion ?? null,
+          pinId: context.defectContext?.pin?.id ?? null,
+          pinPlacement: context.defectContext?.pin?.placement ?? null,
+        },
       })
     }
   }

@@ -148,38 +148,17 @@ La pagina attiva salva i nuovi pin soltanto quando il raycast colpisce una mesh:
 
 Questo inventario non prova che tutte le cause siano coperte né che i sinonimi siano intercambiabili in ogni contesto. Per esempio “bruciatura da aria intrappolata” e “materiale degradato nel cilindro” possono avere sintomi simili ma richiedono domande diagnostiche diverse.
 
-## Struttura proposta per il catalogo unico
+## Catalogo unico v1
 
-La futura fonte strutturata dovrebbe avere questi campi, non una mappa libera di delta:
+Il catalogo eseguibile è `src/defects/defectCatalog.ts`: contiene 24 ID canonici, nomi, alias legacy, descrizioni, sintomi, criteri gravità 1–3, domande, fonti/limiti e stato di verifica/automazione. La normalizzazione degli alias fallisce esplicitamente in caso di collisione non risolta. La pagina Difetti filtra/mostra tutte le voci; il pin mesh usa l’ID canonico del catalogo.
 
-```ts
-interface DefectCatalogEntry {
-  canonicalId: string;
-  legacyIds: string[];
-  nameIt: string;
-  synonymsIt: string[];
-  symptoms: string[];
-  diagnosticQuestions: string[];
-  probableCauses: Array<{ domain: "process" | "material" | "mold" | "machine"; description: string }>;
-  actions: Array<{ order: number; domain: "process" | "material" | "mold"; action: string; verification: string }>;
-  automation: {
-    status: "manual" | "proposed" | "validated";
-    allowedFields: string[];
-    preconditions: string[];
-    exclusions: string[];
-    requiredLimits: string[];
-    evidenceIds: string[];
-  };
-  sources: Array<{ publisher: string; title: string; revision: string; urlOrDocumentNo: string; pageOrSection: string; supports: string; status: "verified" | "pending" }>;
-  coverage: "partial" | "documented" | "validated";
-}
-```
+Copertura attuale: **24 schede selezionabili, 10 parziali, 14 senza riscontro**. Quattro schede (short shot, burn/diesel, flash, sink) hanno cause e azioni BASF lette nel relativo campo dichiarato; le azioni sono condizionali e non validate per ogni grade. Sei schede parziali hanno solo fonte di contesto/scopo TPU o hot-runner e non generano cause/azioni. Le restanti 14 non hanno evidenze OEM acquisite. Le schede senza cause verificate restituiscono solo lo stato documentale nel Knowledge Engine e zero raccomandazioni tecniche.
 
-`validated` richiede verifica con dati della resina specifica, pressa/vite selezionate, limiti macchina, geometria e prova pezzo; fonte e risultato di prova devono essere collegati. Se manca una precondizione, il catalogo può fornire diagnosi e controlli, ma non comandare il ricalcolo. Nessuna percentuale fissa è ammessa senza fonte e regola di clamp esplicita.
+Automazione: le tre proposte legacy `+10%` Short Shot, `-10%` Burn, `-10%` Flash restano le sole correzioni percentuali disponibili; sono euristiche non validate e la gravità non ne moltiplica il valore. Sink resta manuale. Nessuna voce nuova abilita ricalcolo. `validated` continua a richiedere dati specifici di grado, pressa/vite, limiti, geometria e prova pezzo.
 
-## Schede preliminari
+## Schede censite e stato documentale
 
-Ogni voce seguente è una proposta di copertura e non una regola eseguibile. I sintomi sono descrittivi; le cause sono ipotesi da discriminare, non diagnosi automatiche. Le prime quattro voci hanno fonti BASF integrali associate; per le altre valgono gli stati della matrice documentale. Le fonti TPU/hot-runner non si estendono oltre il loro ambito dichiarato.
+Le 24 schede seguenti documentano il perimetro del catalogo. Causa/azione presente nel catalogo eseguibile soltanto quando è supportata dalle fonti descritte; le altre rimangono assenti e non vengono trasformate in consigli automatici. Le fonti TPU/hot-runner non si estendono oltre il loro ambito dichiarato.
 
 ### Stato documentale per scheda
 

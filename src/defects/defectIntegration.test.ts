@@ -1,7 +1,6 @@
 import { calcolaParametri } from "../core/calcEngine";
 import {
   applyDefectSelection,
-  DEFECT_PAGE_CATALOG,
   getAutomaticDefectCorrection,
   mapLegacyDefectId,
   resolveDefectIntegration,
@@ -23,7 +22,7 @@ const baseInput = {
 };
 
 describe("active defects page integration", () => {
-  it.each(DEFECT_PAGE_CATALOG.map(({ id }) => id))("maps sidebar id %s to a canonical integration", (id) => {
+  it.each(['short_shot', 'burn_mark', 'flash', 'sink'])("maps active defect id %s to a calculation integration", (id) => {
     expect(mapLegacyDefectId(id)).not.toBeNull();
     expect(resolveDefectIntegration(id)).not.toBeNull();
   });
