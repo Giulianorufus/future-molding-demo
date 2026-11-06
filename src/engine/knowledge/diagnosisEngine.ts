@@ -1,4 +1,5 @@
 import type { KnowledgeContext, Diagnosis, SimilarCase } from './types'
+import { buildGuidedDiagnosis } from './guidedDiagnosis'
 
 export async function diagnose(
   context: KnowledgeContext,
@@ -6,16 +7,17 @@ export async function diagnose(
 ): Promise<Diagnosis[]> {
   const diagnosis: Diagnosis[] = []
 
-  const hasDefect = typeof context.defectContext?.defectId === 'string' && context.defectContext.defectId.length > 0
-  if (hasDefect) {
+  const guide = buildGuidedDiagnosis(context.defectContext?.defectId ?? context.input.defectId, context.defectContext?.observations)
+  for (const hypothesis of guide?.hypotheses ?? []) {
     diagnosis.push({
-      id: 'defect-root-cause',
-      title: 'Cause difettose identificate',
-      description: 'Il sistema ha identificato un difetto e ne valuta le possibili cause primarie.',
-      score: 80,
+      id: hypothesis.id,
+      title: hypothesis.title,
+      description: hypothesis.explanation,
+      // Evidence count is an ordering index, never a calibrated probability.
+      score: hypothesis.evidence.length,
       severity: 'medium',
-      tags: ['defect', 'root-cause'],
-      source: 'diagnosisEngine',
+      tags: ['defect', 'hypothesis', hypothesis.evidence.length ? 'observed-indication' : 'unverified'],
+      source: 'guidedDiagnosis',
     })
   }
 

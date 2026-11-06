@@ -5,5 +5,7 @@
   "screwDiameters": [18, 22, 25],
   "shotVolumeCm3": 350,
   "maxPressureBar": 250,
-  "maxSpeedMmPerS": 200
+  "maxSpeedMmPerS": 200,
+  "dataStatus": "reference",
+  "source": "Configurazione di riferimento del progetto; dati macchina da verificare su targa"
 }
