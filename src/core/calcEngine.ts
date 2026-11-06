@@ -21,6 +21,7 @@ export type CalculationInput = {
     screwDiameterMm?: number
     maxPressureBar: number
     maxSpeedMmPerS: number
+    maxInjectionFlowCm3s?: number
     maxShotVolumeCm3?: number
   } | null
   material?: {
@@ -72,7 +73,9 @@ export function calcolaParametri(input: CalculationInput, _context?: CalcContext
       tonnellaggio_kN: toFinite(press?.tonnellaggio) * 9.80665,
       screwDiameter_mm: screw,
       maxInjectionPressure_bar: press?.maxPressureBar,
-      maxInjectionSpeed_cm3_s: linearScrewSpeedToFlowCm3s(press?.maxSpeedMmPerS, screw) ?? undefined,
+      maxInjectionSpeed_cm3_s: press?.maxInjectionFlowCm3s
+        ?? linearScrewSpeedToFlowCm3s(press?.maxSpeedMmPerS, screw)
+        ?? undefined,
       maxShotVolume_cm3: press?.maxShotVolumeCm3,
     },
     geometry: {

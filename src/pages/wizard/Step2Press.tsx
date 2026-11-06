@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react'
 import { usePressStore } from '@/stores/pressStore'
+import type { PressSpec } from '@/stores/pressStore'
 
 export default function Step2Press({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) {
   const { catalog, selectedPressId, selectedScrewDiameter_mm, selectPress, selectScrewDiameter } = usePressStore()
   const entries = useMemo(() => Object.values(catalog || {}), [catalog])
 
   const brands = useMemo(() => {
-    const map: Record<string, Array<any>> = {}
+    const map: Record<string, PressSpec[]> = {}
     for (const e of entries) {
       const brand = String(e.id).split('-')[0]
       map[brand] = map[brand] || []
@@ -38,7 +39,7 @@ export default function Step2Press({ onNext, onBack }: { onNext?: () => void; on
         <label className="block text-blue-800 font-semibold mb-2">Modello</label>
         <select className="border p-2 rounded w-full" value={selectedPressId ?? ''} onChange={(e) => selectPress(e.target.value || null)}>
           <option value="">Seleziona modello</option>
-          {models.map((m: any) => (
+          {models.map((m) => (
             <option key={m.id} value={m.id}>{m.name || m.id}</option>
           ))}
         </select>
@@ -47,8 +48,13 @@ export default function Step2Press({ onNext, onBack }: { onNext?: () => void; on
       <div>
         <label className="block text-blue-800 font-semibold mb-2">Diametro vite</label>
         <div>
-          {selectedPress ? (
-            <select className="border p-2 rounded w-full" value={(selectedScrewDiameter_mm ?? (selectedPress.screwDiameters?.[0] ?? '')) as any} onChange={(e) => {
+          {selectedPress?.dataStatus === 'reference' && (
+            <div className="mb-2 rounded border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-900">
+              Configurazione di riferimento: verificare i dati della targa prima di trasferire la ricetta alla pressa.
+            </div>
+          )}
+          {selectedPress && selectedPress.screwDiameters.length > 0 ? (
+            <select className="border p-2 rounded w-full" value={selectedScrewDiameter_mm ?? selectedPress.screwDiameters[0] ?? ''} onChange={(e) => {
                 const v = e.target.value === '' ? null : Number(e.target.value)
                 selectScrewDiameter(v)
               }}>
@@ -56,6 +62,10 @@ export default function Step2Press({ onNext, onBack }: { onNext?: () => void; on
                 <option key={d} value={d}>{d} mm</option>
               ))}
             </select>
+          ) : selectedPress ? (
+            <div className="rounded border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-900">
+              Questa pressa ha la forza di chiusura documentata ({selectedPress.clampForceKn} kN), ma i dati dell’unità d’iniezione non sono ancora caricati.
+            </div>
           ) : (
             <div className="text-sm text-gray-500">Seleziona un modello per vedere le opzioni vite.</div>
           )}

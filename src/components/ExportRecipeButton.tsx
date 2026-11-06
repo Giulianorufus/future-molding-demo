@@ -99,7 +99,7 @@ export function ExportRecipeButton() {
   };
 
   return (
-    <button className="btn btn-primary" onClick={onClick} disabled={!result}>Esporta ricetta</button>
+    <button className="fm-action" onClick={onClick} disabled={!result}>Esporta ricetta</button>
   );
 }
 

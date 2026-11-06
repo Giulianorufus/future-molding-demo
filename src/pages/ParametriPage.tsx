@@ -1,7 +1,6 @@
 import { useParametriStore } from "../stores/parametriStore";
 import OperatorRecipePanel from "../components/OperatorRecipePanel";
 import SimilarCasesPanel from "../components/SimilarCasesPanel";
-import ExportRecipeButton from "../components/ExportRecipeButton";
 import { buildRecipeSnapshot } from "../engine/recipeExport/buildRecipeSnapshot";
 import { useCaseStore } from "../stores/caseStore";
 import { useEffect } from "react";
@@ -135,11 +134,8 @@ export default function ParametriPage() {
 
       {/* Risultato */}
       {result && (
-        <div className="bg-white p-4 shadow rounded-xl max-w-5xl sm:p-6">
+        <div className="fm-card max-w-7xl p-4 sm:p-6">
           <OperatorRecipePanel result={result} />
-          <div className="mt-4">
-            <ExportRecipeButton />
-          </div>
 
           {/* Gate Freeze recommendation (minimal, read-only suggestion) */}
           <div className="mt-4" data-testid="gate-freeze-panel">

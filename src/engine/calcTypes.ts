@@ -127,6 +127,7 @@ export interface CalcOutput {
 
   // Suggerimenti intelligenti
   suggerimenti: string[];
+  warnings?: string[];
   // Profili opzionali da motore avanzato
   profiloIniezione?: { step1: number; step2: number; step3: number };
   profiloPressione?: { step1: number; step2: number; step3: number };
