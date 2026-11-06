@@ -111,13 +111,13 @@ export default function DisegniPage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="px-3 py-2 rounded bg-yellow-400 text-black font-medium"
+            className="fm-action"
             onClick={onOpenWizard}
           >
             Apri Wizard
           </button>
 
-          <label className="px-3 py-2 rounded bg-blue-700 text-white font-medium cursor-pointer">
+          <label className="fm-action cursor-pointer focus-within:ring-2 focus-within:ring-blue-600">
             <input
               data-testid="drawings-upload"
               type="file"
@@ -146,7 +146,7 @@ export default function DisegniPage() {
 
         <div data-testid="drawings-list" className="grid gap-2">
           {list.length === 0 ? (
-            <div className="p-3 rounded border border-gray-200 text-sm text-gray-600">
+            <div className="fm-card p-3 text-sm text-gray-600">
               Nessun disegno salvato. Carica un file (o apri il Wizard) per iniziare.
             </div>
           ) : (

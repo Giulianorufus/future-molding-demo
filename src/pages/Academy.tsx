@@ -23,19 +23,19 @@ export default function Academy() {
   }),[ds.volumeCm3,ds.cavityCount,ds.feedSystem]);
 
   return <div className="max-w-5xl mx-auto space-y-5">
-    <div className="bg-blue-800 text-white rounded-xl p-6">
+    <div className="fm-topbar rounded-xl p-6 text-white">
       <div className="flex items-center gap-3"><GraduationCap/><h1 className="text-2xl font-bold">Future Molding Academy</h1></div>
       <p className="mt-2 text-blue-100">Impara sullo stesso pezzo, stampo e processo usati in Produzione.</p>
     </div>
     <div className="grid md:grid-cols-3 gap-3">{lessons.map(l=><button key={l.id} onClick={()=>{setLessonId(l.id);setAnswer(null)}} className={`text-left border rounded-lg p-4 ${lessonId===l.id?'border-blue-600 bg-blue-50':'bg-white'}`}><div className="font-semibold text-blue-800">{l.title}</div><div className="text-sm text-gray-600 mt-1">{l.description}</div></button>)}</div>
     <div className="grid md:grid-cols-3 gap-5">
-      <section className="md:col-span-2 bg-white border rounded-xl p-5">
+      <section className="fm-card p-5 md:col-span-2">
         <div className="flex items-center gap-2 text-blue-800 font-semibold"><PlayCircle size={20}/>{lesson.title}</div>
         <p className="mt-4 font-medium">{lesson.question}</p>
         <div className="grid gap-2 mt-3">{lesson.answers.map((a,i)=><button key={a} onClick={()=>setAnswer(i)} className={`text-left border rounded p-3 ${answer===i?'border-blue-600 bg-blue-50':''}`}>{a}</button>)}</div>
         {answer!==null && <div className={`mt-4 rounded p-4 ${answer===lesson.correct?'bg-green-50':'bg-amber-50'}`}><div className="flex items-center gap-2 font-semibold">{answer===lesson.correct?<CheckCircle2 size={18}/>:<AlertTriangle size={18}/>} {answer===lesson.correct?'Corretto':'Da rivedere'}</div><p className="text-sm mt-1">{lesson.explanation}</p></div>}
       </section>
-      <aside className="bg-gray-50 border rounded-xl p-5">
+      <aside className="fm-card p-5">
         <h2 className="font-semibold text-blue-800">Caso reale corrente</h2>
         {context.partVolume ? <div className="text-sm space-y-2 mt-3"><div>Volume pezzo: <strong>{context.partVolume.toFixed(2)} cm³</strong></div><div>Cavità: <strong>{context.cavities}</strong></div><div>Volume pezzi/stampata: <strong>{context.total?.toFixed(2)} cm³</strong></div><div>Alimentazione: <strong>{context.feed==='hot'?'Canale caldo':context.feed==='cold'?'Canale freddo':'Non nota'}</strong></div></div>:<p className="text-sm text-gray-600 mt-3">Carica un CAD nel Wizard per trasformare le lezioni in esercizi sul tuo pezzo.</p>}
       </aside>

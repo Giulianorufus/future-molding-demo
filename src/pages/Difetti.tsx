@@ -32,8 +32,8 @@ export default function DifettiPage() {
   const normalizedId = guide?.id.replace(/-/g, '_')
   const selectedPin = normalizedId ? DEFECT_PINS[normalizedId as keyof typeof DEFECT_PINS] ?? null : null
 
-  return <div className="flex min-h-full flex-col text-blue-950 lg:flex-row">
-    <aside className="shrink-0 border-b border-slate-200 bg-slate-50 p-4 lg:w-60 lg:border-b-0 lg:border-r">
+  return <div className="flex min-h-full flex-col gap-4 text-blue-950 lg:flex-row">
+    <aside className="fm-card shrink-0 p-4 lg:w-60">
       <h1 className="mb-3 text-xl font-bold">Difetti</h1>
       <label className="block text-sm font-medium">Cerca difetto
         <input type="search" aria-label="Cerca difetto" placeholder="Nome o sinonimo…" className="mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white p-2" value={query} onChange={event => setQuery(event.target.value)} />
@@ -57,7 +57,7 @@ export default function DifettiPage() {
       <p className="mt-4 text-sm text-slate-600">{guide?.description ?? 'Seleziona un difetto per iniziare le verifiche.'}</p>
       {guide && <p className="mt-4 text-xs text-slate-500">{automaticCorrection ? 'Questo difetto dispone anche del ricalcolo della ricetta nei limiti disponibili.' : 'Per questo difetto sono disponibili verifiche e prove guidate da valutare in pressa.'}</p>}
     </aside>
-    <div className="min-w-0 flex-1 space-y-4 p-4">
+    <div className="min-w-0 flex-1 space-y-4">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex min-h-72 min-w-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
           {viewerUrl ? <ThreeViewer viewerUrl={viewerUrl} selectedPin={selectedPin} />
@@ -65,7 +65,7 @@ export default function DifettiPage() {
             : conversionStatus === 'error' ? <p role="alert" className="p-6 text-red-700">{conversionMessage || 'Errore durante la conversione del modello.'}</p>
             : <p className="p-6 text-center text-sm text-slate-500">Carica un disegno per visualizzare il modello.</p>}
         </div>
-        <section aria-label="Parametri calcolati" className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+        <section aria-label="Parametri calcolati" className="fm-card p-4 text-sm">
           <h2 className="mb-3 text-lg font-semibold">Parametri</h2>
           {loading && <p role="status">Calcolo in corso…</p>}
           {error && <p role="alert" className="text-red-700">{String(error)}</p>}
@@ -85,7 +85,7 @@ export default function DifettiPage() {
         </section>
       </div>
       {selectedDefectId ? <GuidedDefectDiagnosis key={`${selectedDefectId}:${viewerUrl}:${pressId}:${materialId}`} defectId={selectedDefectId} severity={selectedSeverity} result={result} volumeCm3={volumeCm3} pressId={pressId} materialId={materialId} /> : <p className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm">Scegli il difetto: ti guiderò attraverso tre domande per ordinare le cause possibili e le azioni.</p>}
-      {guide && <DefectOutcomeLog key={`${guide.id}:${viewerUrl}:${pressId}:${materialId}`} defectId={guide.id} pressId={pressId} materialId={materialId} />}
+      {guide && <DefectOutcomeLog key={`outcome:${guide.id}:${viewerUrl}:${pressId}:${materialId}`} defectId={guide.id} pressId={pressId} materialId={materialId} />}
     </div>
   </div>
 }
