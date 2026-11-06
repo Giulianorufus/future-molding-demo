@@ -717,7 +717,8 @@ export function calcolaParametri(input: UserCalcInput): UserCalcOutput {
 
     temperature: tempOut,
 
-    suggerimenti: internal.suggestions ?? internal.suggestions ?? [],
+    warnings: internal.warnings ?? [],
+    suggerimenti: internal.suggestions ?? [],
   };
 
   (out as any).profiloIniezione = buildInjectionProfile(Number(out.velIniezione ?? 0));

@@ -109,5 +109,13 @@ describe('calculateParameters basic scenarios', () => {
     expect(result.vpSwitchVolumeCm3).toBeNull();
     expect(result.vpTimeMs).toBeNull();
     expect(result.warnings).toEqual(expect.arrayContaining([expect.stringMatching(/Commutazione V\/P non disponibile/)]));
+
+    const wizard = calculateWizard({ volumeCm3: 4.326812, material: { id: 'PP-HOMO' } });
+    expect(wizard.unified).toMatchObject({
+      warnings: expect.arrayContaining([
+        expect.stringMatching(/Numero cavità non confermato/),
+        expect.stringMatching(/Commutazione V\/P non disponibile/),
+      ]),
+    });
   });
 });

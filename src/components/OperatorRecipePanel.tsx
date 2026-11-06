@@ -18,13 +18,14 @@ function show(value: number | null, unit: string): string {
   return value === null ? 'Dato non disponibile' : numberFormatter.format(value) + ' ' + unit
 }
 
-function Metric({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+function Metric({ label, value, source, highlight = false }: { label: string; value: string; source?: string; highlight?: boolean }) {
   return (
     <div className={highlight
       ? 'rounded-xl border border-yellow-400 bg-yellow-50 p-4'
       : 'fm-card p-4'}>
       <dt className="text-sm font-medium text-blue-800">{label}</dt>
       <dd className="mt-1 break-words text-xl font-bold tabular-nums text-blue-950">{value}</dd>
+      {source && <dd className="mt-1 text-sm text-slate-600">{source}</dd>}
     </div>
   )
 }
@@ -55,10 +56,19 @@ export default function OperatorRecipePanel({ result, compatibility }: OperatorR
         <ExportRecipeButton />
       </div>
 
+      {recipe.warnings.length > 0 && (
+        <section aria-label="Avvisi della ricetta" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-950">
+          <h3 className="font-semibold">Da verificare prima della prova</h3>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
+            {recipe.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+          </ul>
+        </section>
+      )}
+
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Metric label="Volume dosaggio · dose totale" value={dose} highlight={recipe.shotVolumeCm3 === null} />
-        <Metric label="Commutazione V/P · volume iniettato" value={vp} highlight={recipe.vpVolumeCm3 === null} />
-        <Metric label="Chiusura richiesta" value={show(recipe.requiredClampTon, 't')} highlight={recipe.requiredClampTon === null} />
+        <Metric label="Volume dosaggio · dose totale" value={dose} source="Volume pezzo, numero cavità e canali freddi" highlight={recipe.shotVolumeCm3 === null} />
+        <Metric label="Commutazione V/P · volume iniettato" value={vp} source="Stima del motore riferita alla dose totale" highlight={recipe.vpVolumeCm3 === null} />
+        <Metric label="Chiusura richiesta" value={show(recipe.requiredClampTon, 't')} source="Stima del motore · verificare area proiettata e pressione in cavità" highlight={recipe.requiredClampTon === null} />
       </dl>
       {recipe.vpVolumeCm3 !== null && (
         <p className="text-sm text-blue-800">
@@ -72,7 +82,7 @@ export default function OperatorRecipePanel({ result, compatibility }: OperatorR
           <section aria-label="Iniezione" className="fm-card pb-4 [&>dl]:mx-4 [&>div]:mx-4 [&>h4]:mx-4 [&>p]:mx-4">
             <h3 className="fm-panel-title">1. Iniezione</h3>
             <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Metric label="Portata suggerita" value={show(recipe.injectionFlowCm3s, 'cm³/s')} />
+              <Metric label="Portata suggerita" value={show(recipe.injectionFlowCm3s, 'cm³/s')} source="Stima del motore con i limiti pressa disponibili" />
               <Metric label="Pressione stimata" value={show(recipe.injectionPressureBar, 'bar')} />
             </dl>
             <h4 className="mt-4 text-sm font-semibold">Fasi di riempimento</h4>
@@ -122,7 +132,7 @@ export default function OperatorRecipePanel({ result, compatibility }: OperatorR
           <section className="fm-card">
             <h3 className="fm-panel-title">4. Raffreddamento</h3>
             <dl className="p-3">
-              <Metric label="Raffreddamento indicativo" value={show(recipe.coolingTimeMs, 'ms')} />
+              <Metric label="Raffreddamento indicativo" value={show(recipe.coolingTimeMs, 'ms')} source="Stima del motore da verificare sul ciclo reale" />
             </dl>
           </section>
         </div>
@@ -130,7 +140,7 @@ export default function OperatorRecipePanel({ result, compatibility }: OperatorR
           <h3 className="fm-panel-title">Configurazione stampo</h3>
           <div className="space-y-3 p-4 text-sm">
             <dl className="space-y-2">
-              <div><dt className="font-semibold">Numero cavità</dt><dd>{cavities}{confirmed ? '' : ' · da confermare'}</dd></div>
+              <div><dt className="font-semibold">Numero cavità · configurazione stampo</dt><dd>{cavities}{confirmed ? '' : ' · da confermare'}</dd></div>
               <div><dt className="font-semibold">Alimentazione</dt><dd>{feed === 'cold' ? 'Canale freddo' : feed === 'hot' ? 'Canale caldo' : 'Da confermare'}</dd></div>
             </dl>
             {compatibility}

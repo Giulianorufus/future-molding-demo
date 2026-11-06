@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 
-test('Wizard: STEP reale -> stampo, pressa, materiale -> parametri', async ({ page }) => {
+async function completeWizard(page: Page) {
   const stepPath = path.resolve(process.cwd(), 'public', 'sample-drawings', 'Frutto (1).stp');
 
   await page.goto('/#/wizard');
@@ -34,4 +34,25 @@ test('Wizard: STEP reale -> stampo, pressa, materiale -> parametri', async ({ pa
   await expect(page.getByText('Volume dosaggio · dose totale')).toBeVisible();
   await expect(page.getByText('19,307248 cm³', { exact: true })).toBeVisible();
   await expect(page.getByText('18,874567 cm³ iniettati', { exact: true })).toBeVisible();
+}
+
+test('Wizard: STEP reale -> stampo, pressa, materiale -> parametri', async ({ page }) => {
+  await completeWizard(page);
+});
+
+test.describe('Wizard su viewport iPhone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+  test('la ricetta resta leggibile e i comandi sono raggiungibili', async ({ page }) => {
+    await completeWizard(page);
+
+    const recipe = page.getByRole('region', { name: 'Ricetta iniziale operatore' });
+    const exportButton = recipe.getByRole('button', { name: 'Esporta ricetta' });
+    await exportButton.scrollIntoViewIfNeeded();
+    await expect(exportButton).toBeInViewport();
+    await expect(recipe.getByRole('heading', { name: 'Configurazione stampo' })).toBeVisible();
+
+    const workspace = page.getByRole('main');
+    await expect.poll(() => workspace.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  });
 });

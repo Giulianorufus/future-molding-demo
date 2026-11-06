@@ -1,5 +1,31 @@
 import { useState, type FormEvent } from 'react'
 import { knowledgeOutcomeSchema, type KnowledgeOutcomeSchema } from '@/engine/knowledge/knowledgeOutcome.schema'
+import type { CalculationResult } from '@/core/calcEngine'
+import { buildOperatorRecipeView } from './operatorRecipe/buildOperatorRecipeView'
+
+const recipeFields = [
+  { key: 'screwDiameterMm', label: 'Vite', unit: 'mm' },
+  { key: 'shotVolumeCm3', label: 'Dose', unit: 'cm³' },
+  { key: 'vpVolumeCm3', label: 'V/P', unit: 'cm³ iniettati' },
+  { key: 'injectionFlowCm3s', label: 'Portata', unit: 'cm³/s' },
+  { key: 'injectionPressureBar', label: 'Pressione stimata', unit: 'bar' },
+  { key: 'requiredClampTon', label: 'Chiusura', unit: 't' },
+  { key: 'holdingPressureBar', label: 'Mantenimento', unit: 'bar' },
+  { key: 'holdingTimeSec', label: 'Tempo mantenimento', unit: 's' },
+  { key: 'coolingTimeMs', label: 'Raffreddamento', unit: 'ms' },
+] as const
+
+const recipeNumber = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 6 })
+
+function summarizeRecipe(snapshot: unknown) {
+  if (!snapshot || typeof snapshot !== 'object') return []
+  return recipeFields.flatMap(({ key, label, unit }) => {
+    const value = (snapshot as Record<string, unknown>)[key]
+    return typeof value === 'number' && Number.isFinite(value) && value > 0
+      ? [`${label} ${recipeNumber.format(value)} ${unit}`]
+      : []
+  })
+}
 
 const storageKey = 'fm:defect-outcomes'
 const outcomeLogSchema = knowledgeOutcomeSchema.array()
@@ -14,13 +40,14 @@ interface Props {
   defectId: string
   pressId?: string | null
   materialId?: string | null
+  result?: CalculationResult | null
 }
 
 function readOutcomes() {
   return outcomeLogSchema.parse(JSON.parse(localStorage.getItem(storageKey) ?? '[]'))
 }
 
-export default function DefectOutcomeLog({ defectId, pressId, materialId }: Props) {
+export default function DefectOutcomeLog({ defectId, pressId, materialId, result }: Props) {
   const [records, setRecords] = useState(() => {
     try {
       return readOutcomes()
@@ -40,6 +67,10 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId }: Prop
     if (!action.trim() || !status) return
 
     try {
+      const recipe = result ? buildOperatorRecipeView(result) : null
+      const recipeSnapshot = recipe
+        ? Object.fromEntries(recipeFields.map(({ key }) => [key, recipe[key]]))
+        : null
       const record: KnowledgeOutcomeSchema = {
         id: Array.from(crypto.getRandomValues(new Uint32Array(4))).join('-'),
         status,
@@ -50,6 +81,7 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId }: Prop
           defectId,
           pressId,
           materialId,
+          recipeSnapshot,
           createdAtISO: new Date().toISOString(),
         },
       }
@@ -73,7 +105,7 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId }: Prop
   return (
     <section aria-labelledby="defect-outcome-heading" className="rounded-xl border border-slate-200 bg-white p-4">
       <h2 id="defect-outcome-heading" className="text-lg font-semibold">Registro delle prove</h2>
-      <p className="mt-1 text-sm text-slate-600">Annota cosa hai provato in pressa. Il registro è salvato in questo browser.</p>
+      <p className="mt-1 text-sm text-slate-600">Annota cosa hai provato in pressa. Il registro è salvato in questo browser. Se il calcolo è disponibile, salva anche i parametri mostrati dall’app in questo momento.</p>
       <form onSubmit={save} className="mt-3 grid gap-3 text-sm">
         <label className="grid gap-1">Modifica provata
           <input required maxLength={240} className="rounded border border-slate-300 p-2" value={action} onChange={event => setAction(event.target.value)} />
@@ -101,16 +133,20 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId }: Prop
       {records === null && <p className="mt-3 text-sm" role="alert">Registro locale non leggibile.</p>}
       {!!matchingRecords?.length && (
         <ul aria-label="Esiti registrati per questo difetto" className="mt-4 max-h-72 space-y-3 overflow-y-auto text-sm">
-          {matchingRecords.map(record => (
-            <li key={record.id} className="border-t border-slate-200 pt-2">
-              <strong>{labels[record.status]}</strong> · {String(record.metadata?.action ?? '')}
-              {record.notes && <p>{record.notes}</p>}
-              {record.metadata?.restored === true && <p>Ricetta precedente ripristinata in pressa.</p>}
-              <p className="text-xs text-slate-600">
-                {[typeof record.metadata?.createdAtISO === 'string' ? new Date(record.metadata.createdAtISO).toLocaleString('it-IT') : null, record.metadata?.pressId, record.metadata?.materialId].filter(Boolean).join(' · ')}
-              </p>
-            </li>
-          ))}
+          {matchingRecords.map(record => {
+            const recipe = summarizeRecipe(record.metadata?.recipeSnapshot)
+            return (
+              <li key={record.id} className="border-t border-slate-200 pt-2">
+                <strong>{labels[record.status]}</strong> · {String(record.metadata?.action ?? '')}
+                {record.notes && <p>{record.notes}</p>}
+                {record.metadata?.restored === true && <p>Ricetta precedente ripristinata in pressa.</p>}
+                <p className="text-xs text-slate-600">
+                  {[typeof record.metadata?.createdAtISO === 'string' ? new Date(record.metadata.createdAtISO).toLocaleString('it-IT') : null, record.metadata?.pressId, record.metadata?.materialId].filter(Boolean).join(' · ')}
+                </p>
+                {recipe.length > 0 && <p className="mt-1 text-xs text-slate-600"><strong>Ricetta mostrata al salvataggio</strong> · {recipe.join(' · ')}</p>}
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>
