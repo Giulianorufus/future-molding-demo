@@ -14,7 +14,11 @@ export default function Step4Parametri({ onBack }: { onBack?: () => void }) {
   const pressCatalog = usePressStore((s) => s.catalog)
   const selectedPressId = usePressStore((s) => s.selectedPressId)
   const selectedPress = selectedPressId ? pressCatalog[selectedPressId] : undefined
-  const mold = useDrawingStore((s) => ({ footprintXmm: s.moldFootprintXmm, footprintYmm: s.moldFootprintYmm, heightMm: s.moldHeightMm, requiredOpeningMm: s.requiredOpeningMm }))
+  const footprintXmm = useDrawingStore((s) => s.moldFootprintXmm)
+  const footprintYmm = useDrawingStore((s) => s.moldFootprintYmm)
+  const heightMm = useDrawingStore((s) => s.moldHeightMm)
+  const requiredOpeningMm = useDrawingStore((s) => s.requiredOpeningMm)
+  const mold = { footprintXmm, footprintYmm, heightMm, requiredOpeningMm }
   const pressFit = data && selectedPress ? evaluatePressMoldFit(data.tonnellaggioRequired, data.shotVolumeCm3, selectedPress, mold) : null
   const idealPress = data ? recommendPressForMold({ requiredClampTon: data.tonnellaggioRequired, shotVolumeCm3: data.shotVolumeCm3, presses: Object.values(pressCatalog), mold }).ideal : null
 
