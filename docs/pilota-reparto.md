@@ -40,3 +40,14 @@ Rilevare prima i dati mentre la pressa opera con una ricetta approvata e il cicl
 Associare alla scheda data, commit, revisione CAD, matricola pressa e stampo, vite, numero di cavità attive, geometria canale, grado e lotto PP, eventuale essiccazione e condizioni del processo. Se si pesa la stampata, pesare separatamente pezzi e canale e mantenere distinti massa misurata e volume stimato.
 
 Registrare l'esito come **coerente**, **da approfondire** o **dati mancanti** per ciascun parametro. Per un eventuale intervento autorizzato in reparto, annotare valore precedente, modifica, effetto sul difetto e ripristino. Le modifiche in pressa seguono la procedura di reparto e sono applicate manualmente dal personale autorizzato.
+
+## Collaudo su iPhone con Safari
+
+Aprire [Future Molding](https://future-molding-iphone.sassy-quail-8422.chatgpt.site) direttamente in Safari e usare lo STEP di riferimento salvato nell'app File. Annotare modello iPhone, versione iOS, data e versione dell'app provata.
+
+1. Ripetere il flusso software sopra in verticale. Controllare che la Ricetta sia leggibile senza scorrimento orizzontale e che il pulsante di esportazione sia raggiungibile.
+2. Nel visualizzatore verificare rotazione e zoom con il tocco, quindi avviare e mettere in pausa il riempimento. Se il modello non si apre, annotare messaggio, dimensione e formato del file.
+3. Salvare una prova dimostrativa in Difetti, ricaricare Safari e verificare che l'esito e i parametri registrati siano ancora visibili.
+4. Esportare la ricetta e verificare in Safari quali file vengono effettivamente scaricati e se si aprono. Annotare l'esito di ogni passaggio come superato, fallito o non eseguito.
+
+Il test automatico a dimensioni iPhone usa Chromium. Questa prova separata verifica Safari sul dispositivo.
