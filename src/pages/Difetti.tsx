@@ -5,6 +5,7 @@ import { useDefectsStore } from '@/stores/defectsStore'
 import { usePressStore } from '@/stores/pressStore'
 import { useMaterialStore } from '@/stores/materialStore'
 import ThreeViewer from '@/components/ThreeViewer'
+import DefectOutcomeLog from '@/components/DefectOutcomeLog'
 import GuidedDefectDiagnosis from '@/components/GuidedDefectDiagnosis'
 import { DEFECT_PINS } from '@/data/defectPins'
 import { DEFECT_GUIDES, DEFECT_CATEGORIES, getDefectGuide, searchDefectGuides, type DefectCategory } from '@/engine/knowledge/guidedDiagnosis'
@@ -84,6 +85,7 @@ export default function DifettiPage() {
         </section>
       </div>
       {selectedDefectId ? <GuidedDefectDiagnosis key={`${selectedDefectId}:${viewerUrl}:${pressId}:${materialId}`} defectId={selectedDefectId} severity={selectedSeverity} result={result} volumeCm3={volumeCm3} pressId={pressId} materialId={materialId} /> : <p className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm">Scegli il difetto: ti guiderò attraverso tre domande per ordinare le cause possibili e le azioni.</p>}
+      {guide && <DefectOutcomeLog key={`${guide.id}:${viewerUrl}:${pressId}:${materialId}`} defectId={guide.id} pressId={pressId} materialId={materialId} />}
     </div>
   </div>
 }
