@@ -109,6 +109,7 @@ describe('calculateParameters basic scenarios', () => {
       cavityCountConfirmed: true,
       feedSystem: 'cold',
       runnerVolumeCm3: runnerVolume,
+      runnerProjectedAreaCm2: null,
     });
     try {
       const output = calculateWizard({
@@ -128,6 +129,11 @@ describe('calculateParameters basic scenarios', () => {
       const snapshot = buildRecipeSnapshot({ projectName: 'PC 320 C', input: {}, output });
       const exported = JSON.parse(exportRecipeJson(snapshot)).output;
 
+      expect(output.unified).toMatchObject({
+        warnings: expect.arrayContaining([
+          'Area proiettata dei canali freddi non disponibile: forza di chiusura provvisoria',
+        ]),
+      });
       expect(exported.shotVolumeCm3).toBe(6.666667);
       expect(exported.vpSwitchVolumeCm3).toBeGreaterThan(runnerVolume);
       expect(exported.vpSwitchVolumeCm3).toBeLessThan(exported.shotVolumeCm3);
