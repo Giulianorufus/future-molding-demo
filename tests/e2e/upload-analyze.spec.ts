@@ -31,7 +31,7 @@ async function completeWizard(page: Page) {
   await page.getByRole('button', { name: 'Avanti', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Parametri calcolati' })).toBeVisible();
-  await expect(page.getByText('Volume dosaggio · dose totale')).toBeVisible();
+  await expect(page.getByText('Volume stimato della stampata')).toBeVisible();
   await expect(page.getByText('19,307248 cm³', { exact: true })).toBeVisible();
   await expect(page.getByText('18,874567 cm³ iniettati', { exact: true })).toBeVisible();
 }

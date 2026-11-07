@@ -66,8 +66,8 @@ export default function OperatorRecipePanel({ result, compatibility }: OperatorR
       )}
 
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Metric label="Volume dosaggio · dose totale" value={dose} source="Volume pezzo, numero cavità e canali freddi" highlight={recipe.shotVolumeCm3 === null} />
-        <Metric label="Commutazione V/P · volume iniettato" value={vp} source="Stima del motore riferita alla dose totale" highlight={recipe.vpVolumeCm3 === null} />
+        <Metric label="Volume stimato della stampata" value={dose} source="Pezzi e canali freddi. Il dosaggio pressa dipende anche dal cuscino e dal riferimento della vite." highlight={recipe.shotVolumeCm3 === null} />
+        <Metric label="Commutazione V/P · volume iniettato" value={vp} source="Volume iniettato stimato. Verificare il riferimento della posizione vite sul pannello." highlight={recipe.vpVolumeCm3 === null} />
         <Metric label="Chiusura richiesta" value={show(recipe.requiredClampTon, 't')} source="Stima del motore · verificare area proiettata e pressione in cavità" highlight={recipe.requiredClampTon === null} />
       </dl>
       {recipe.vpVolumeCm3 !== null && (
@@ -83,7 +83,7 @@ export default function OperatorRecipePanel({ result, compatibility }: OperatorR
             <h3 className="fm-panel-title">1. Iniezione</h3>
             <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Metric label="Portata suggerita" value={show(recipe.injectionFlowCm3s, 'cm³/s')} source="Stima del motore con i limiti pressa disponibili" />
-              <Metric label="Pressione stimata" value={show(recipe.injectionPressureBar, 'bar')} />
+              <Metric label="Pressione teorica · da verificare" value={show(recipe.injectionPressureBar, 'bar')} source="Stima del motore da confrontare con la pressione misurata in pressa" highlight />
             </dl>
             <h4 className="mt-4 text-sm font-semibold">Fasi di riempimento</h4>
             {recipe.injectionPhases.length > 0 ? (
