@@ -53,6 +53,14 @@ describe('vista operatore', () => {
     expect(view.injectionPhases.every((phase) => phase.endPercentOfShot === null)).toBe(true)
   })
 
+  it('mantiene gli avvisi del motore senza duplicati e gestisce le ricette precedenti', () => {
+    const warning = 'Area proiettata non disponibile: forza di chiusura provvisoria'
+    const view = buildOperatorRecipeView(recipe({ unified: { warnings: [warning, warning, null] } }))
+
+    expect(view.warnings).toEqual([warning])
+    expect(buildOperatorRecipeView(recipe({ unified: null })).warnings).toEqual([])
+  })
+
   it('non inventa valori per i dati assenti', () => {
     const view = buildOperatorRecipeView(recipe({ unified: null }))
     expect(view.injectionPhases).toEqual([])

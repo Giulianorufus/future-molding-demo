@@ -1,0 +1,57 @@
+import { test, expect } from '@playwright/test'
+import { serveFixture, exposeStores, injectStores, waitForParametriResult } from './helpers/fixtureHelper'
+
+test('diagnosi guidata senza ricetta: indizi, ordine delle cause, cambio difetto e reset', async ({ page }, testInfo) => {
+  await page.goto('/#/difetti')
+  await page.getByRole('button', { name: 'Bruciature', exact: true }).click()
+  const panel = page.getByRole('region', { name: 'Diagnosi guidata' })
+  await expect(panel.getByText(/Completa il Wizard/)).toBeVisible()
+  await panel.getByRole('combobox', { name: 'Dove si vedono i segni scuri?' }).selectOption('spread')
+  await panel.getByRole('combobox', { name: 'Il difetto peggiora dopo una sosta?' }).selectOption('yes')
+  await expect(panel.getByRole('heading', { name: '1. Degrado per temperatura o permanenza' })).toBeVisible()
+  await expect(panel.getByText('2 di 3 risposte · 2 osservazioni verificate')).toBeVisible()
+  await panel.evaluate(element => element.scrollIntoView({ block: 'start' }))
+  await page.screenshot({ path: testInfo.outputPath('diagnosis-desktop.png') })
+  await panel.locator('details').last().scrollIntoViewIfNeeded()
+  await page.screenshot({ path: testInfo.outputPath('diagnosis-desktop-actions.png') })
+  await page.getByRole('button', { name: 'Riempimento incompleto', exact: true }).click()
+  await expect(panel.getByText('0 di 3 risposte · 0 osservazioni verificate')).toBeVisible()
+  await expect(panel.getByRole('combobox', { name: 'Dove manca il materiale?' })).toHaveValue('')
+  await panel.getByRole('combobox', { name: 'Dove manca il materiale?' }).selectOption('end')
+  await expect(panel.getByRole('heading', { name: '1. Aria intrappolata o sfiati insufficienti' })).toBeVisible()
+  await panel.getByRole('button', { name: 'Ricomincia le domande' }).click()
+  await expect(panel.getByText('0 di 3 risposte · 0 osservazioni verificate')).toBeVisible()
+  for (const question of await panel.getByRole('combobox').all()) await question.selectOption('unknown')
+  await expect(panel.getByText('3 di 3 risposte · 0 osservazioni verificate')).toBeVisible()
+  await expect(panel.getByText('Indizi presenti', { exact: true })).toHaveCount(0)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await panel.evaluate(element => element.scrollIntoView({ block: 'start' }))
+  await page.screenshot({ path: testInfo.outputPath('diagnosis-mobile.png') })
+  expect((await panel.boundingBox())!.width, 'La barra di navigazione non deve comprimere le domande').toBeGreaterThan(300)
+  expect(await panel.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
+test('la scelta del difetto segue lo store; le risposte non modificano la ricetta', async ({ page }) => {
+  await serveFixture(page, 'tests/fixtures/Frutto (1).glb')
+  await page.goto('/#/wizard')
+  await exposeStores(page)
+  await injectStores(page, { pressId: 'arburg-370-u', materialId: 'PP-HOMO' })
+  await waitForParametriResult(page)
+  await page.goto('/#/difetti')
+  await page.getByRole('button', { name: 'Bava / sormonto', exact: true }).click()
+  // Wait for the existing defect-to-recipe recalculation before collecting a baseline.
+  await page.waitForFunction(() => {
+    const state = (window as any).__FM_STORES__.parametri.getState()
+    return state.lastDefectFix?.defectId === 'flash' && !state.loading
+  })
+  const baseline = await page.evaluate(() => JSON.stringify((window as any).__FM_STORES__.parametri.getState().result))
+  const panel = page.getByRole('region', { name: 'Diagnosi guidata' })
+  await panel.getByRole('combobox', { name: 'Quando compare la bava?' }).selectOption('hold')
+  await expect(panel.getByRole('heading', { name: '1. Post-pressione eccessiva per lo stampo' })).toBeVisible()
+  expect(await page.evaluate(() => JSON.stringify((window as any).__FM_STORES__.parametri.getState().result))).toBe(baseline)
+  // A different CAD/model starts a fresh observation session.
+  await page.evaluate(() => (window as any).__FM_STORES__.drawing.getState().setResult({ viewerUrl: null }))
+  await expect(panel.getByText('0 di 3 risposte · 0 osservazioni verificate')).toBeVisible()
+  await expect(panel.getByRole('combobox', { name: 'Quando compare la bava?' })).toHaveValue('')
+})

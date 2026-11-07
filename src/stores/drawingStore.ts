@@ -12,6 +12,10 @@ export type DrawingState = {
   feedSystem: 'unknown' | 'hot' | 'cold'
   runnerVolumeCm3: number | null
   runnerProjectedAreaCm2: number | null
+  moldFootprintXmm: number | null
+  moldFootprintYmm: number | null
+  moldHeightMm: number | null
+  requiredOpeningMm: number | null
   gatePoint: { x: number; y: number; z: number } | null
   gateNormal: { x: number; y: number; z: number } | null
   gates: InjectionGate[]
@@ -48,6 +52,10 @@ export const useDrawingStore = create<DrawingState>((set) => ({
   feedSystem: 'unknown',
   runnerVolumeCm3: null,
   runnerProjectedAreaCm2: null,
+  moldFootprintXmm: null,
+  moldFootprintYmm: null,
+  moldHeightMm: null,
+  requiredOpeningMm: null,
   gatePoint: null,
   gateNormal: null,
   gates: [],
@@ -147,6 +155,10 @@ export const useDrawingStore = create<DrawingState>((set) => ({
       feedSystem: 'unknown',
       runnerVolumeCm3: null,
       runnerProjectedAreaCm2: null,
+      moldFootprintXmm: null,
+      moldFootprintYmm: null,
+      moldHeightMm: null,
+      requiredOpeningMm: null,
       gatePoint: null,
       gateNormal: null,
       gates: [],
