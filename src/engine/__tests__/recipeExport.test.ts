@@ -25,6 +25,20 @@ describe('recipe export', () => {
     expect(lines[1].split(';')[shotIndex]).toBe('19.307248');
   });
 
+  test('csv quotes separators, quotes and line breaks inside fields', () => {
+    const snap = buildRecipeSnapshot({
+      projectName: 'PC; "320 C"',
+      input: {},
+      output: {},
+    });
+    snap.warnings = ['Pressione; da verificare', 'Seconda riga\nDettaglio'];
+    snap.assumptions = ['Quota\rda confermare'];
+
+    const csv = exportRecipeCsv(snap);
+    expect(csv.split('\n')[1].startsWith('"PC; ""320 C""";')).toBe(true);
+    expect(csv.endsWith(';"Pressione; da verificare|Seconda riga\nDettaglio";"Quota\rda confermare"\n')).toBe(true);
+  });
+
   test('pdf smoke: generates bytes starting with %PDF', async () => {
     const snap = buildRecipeSnapshot({ projectName: 'P', input: {}, output: {} });
     const bytes = await exportRecipePdf(snap);
