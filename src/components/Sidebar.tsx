@@ -1,84 +1,29 @@
 import { NavLink } from "react-router-dom";
 import {
-  LayoutDashboard,
-  FileText,
-  Wrench,
-  AlertTriangle,
-  Database,
-  Settings,
-  GraduationCap,
+  AlertTriangle, ClipboardList, Database, FileText, GraduationCap,
+  LayoutDashboard, Settings, Wrench,
 } from "lucide-react";
 
-const linkBase =
-  "flex items-center gap-3 px-4 py-3 text-white hover:bg-blue-700 transition";
-const linkActive =
-  "bg-blue-900 border-l-4 border-yellow-400";
+const navigation = [
+  { to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
+  { to: "/disegni", label: "Disegni", Icon: FileText },
+  { to: "/wizard", label: "Configura stampata", Icon: Wrench },
+  { to: "/parametri", label: "Parametri", Icon: ClipboardList },
+  { to: "/difetti", label: "Difetti", Icon: AlertTriangle },
+  { to: "/raccolta-dati", label: "Raccolta Dati", Icon: Database },
+  { to: "/academy", label: "Academy", Icon: GraduationCap },
+  { to: "/impostazioni", label: "Impostazioni", Icon: Settings },
+];
 
 export default function Sidebar() {
   return (
-    <div className="w-60 bg-blue-800 text-white flex flex-col py-4">
-      <NavLink
-        to="/dashboard"
-        className={({ isActive }) =>
-          isActive ? `${linkBase} ${linkActive}` : linkBase
-        }
-      >
-        <LayoutDashboard size={20} /> Dashboard
-      </NavLink>
-
-      <NavLink
-        to="/disegni"
-        className={({ isActive }) =>
-          isActive ? `${linkBase} ${linkActive}` : linkBase
-        }
-      >
-        <FileText size={20} /> Disegni
-      </NavLink>
-
-      <NavLink
-        to="/parametri"
-        className={({ isActive }) =>
-          isActive ? `${linkBase} ${linkActive}` : linkBase
-        }
-      >
-        <Wrench size={20} /> Parametri
-      </NavLink>
-
-      <NavLink
-        to="/raccolta-dati"
-        className={({ isActive }) =>
-          isActive ? `${linkBase} ${linkActive}` : linkBase
-        }
-      >
-        <Database size={20} /> Raccolta Dati
-      </NavLink>
-
-      <NavLink
-        to="/difetti"
-        className={({ isActive }) =>
-          isActive ? `${linkBase} ${linkActive}` : linkBase
-        }
-      >
-        <AlertTriangle size={20} /> Difetti
-      </NavLink>
-
-      <NavLink
-        to="/academy"
-        className={({ isActive }) =>
-          isActive ? `${linkBase} ${linkActive}` : linkBase
-        }
-      >
-        <GraduationCap size={20} /> Academy
-      </NavLink>
-
-      <NavLink
-        to="/impostazioni"
-        className={({ isActive }) =>
-          isActive ? `${linkBase} ${linkActive}` : linkBase
-        }
-      >
-        <Settings size={20} /> Impostazioni
-      </NavLink>
-    </div>
+    <nav aria-label="Navigazione principale" className="fm-sidebar flex w-full shrink-0 overflow-auto md:w-52 md:flex-col md:py-3">
+      {navigation.map(({ to, label, Icon }) => (
+        <NavLink key={to} to={to} className="fm-nav-link flex shrink-0 items-center gap-3 whitespace-nowrap px-4 py-3 text-sm font-semibold">
+          <Icon size={18} aria-hidden="true" />
+          {label}
+        </NavLink>
+      ))}
+    </nav>
   );
 }

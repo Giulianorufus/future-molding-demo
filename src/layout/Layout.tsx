@@ -4,13 +4,11 @@ import { Outlet } from "react-router-dom";
 
 export default function Layout() {
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar />
-
-      <div className="flex flex-col flex-1">
-        <TopBar />
-
-        <main className="p-6 overflow-auto">
+    <div className="fm-shell flex h-dvh min-h-0 flex-col">
+      <TopBar />
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+        <Sidebar />
+        <main className="fm-workspace min-h-0 min-w-0 flex-1 overflow-auto p-3 md:p-6">
           <Outlet />
         </main>
       </div>

@@ -4,7 +4,15 @@ import { useDrawingStore } from '../stores/drawingStore'
 test('exports the canonical wizard selections and calculation result', () => {
   const snapshot = buildExportRecipeSnapshot({
     input: { volumeCm3: 4.326812, shotVolumeCm3: 19.31 },
-    output: { pressureBar: 15, screwDiameterMm: 22, shotVolumeCm3: 19.307248 },
+    output: {
+      pressureBar: 15,
+      screwDiameterMm: 22,
+      shotVolumeCm3: 19.307248,
+      warnings: ['Verificare la ricetta'],
+      unified: {
+        warnings: ['Area proiettata dei canali freddi non disponibile: forza di chiusura provvisoria', 'Verificare la ricetta'],
+      },
+    },
     drawing: {
       ...useDrawingStore.getState(),
       volumeCm3: 4.326812,
@@ -31,6 +39,10 @@ test('exports the canonical wizard selections and calculation result', () => {
     mold: { cavityCount: 4, feedSystem: 'cold', runnerVolumeCm3: 2, runnerProjectedAreaCm2: 1 },
   })
   expect(snapshot.output).toMatchObject({ pressureBar: 15, screwDiameterMm: 22, shotVolumeCm3: 19.307248 })
+  expect(snapshot.warnings).toEqual([
+    'Area proiettata dei canali freddi non disponibile: forza di chiusura provvisoria',
+    'Verificare la ricetta',
+  ])
   expect(snapshot.press).toMatchObject({ id: 'arburg-370-u', screwDiameter_mm: 22 })
   expect(snapshot.material).toMatchObject({ id: 'pp', factors: { densityGPerCm3: 0.905 } })
 })

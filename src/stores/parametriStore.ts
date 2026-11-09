@@ -385,6 +385,7 @@ if (typeof window !== 'undefined') {
               screwDiameterMm: p.selectedScrewDiameter_mm ?? undefined,
               maxPressureBar: pressEntry.maxPressureBar,
               maxSpeedMmPerS: pressEntry.maxSpeedMmPerS,
+              maxInjectionFlowCm3s: pressEntry.maxInjectionFlowCm3s,
             }
           : null,
         material: materialEntry
@@ -445,6 +446,12 @@ if (typeof window !== 'undefined') {
       }
 
       let finalInput = baseInput as any
+      // A guide without a numerical correction must not inherit the previous
+      // defect's correction label or pass it into Knowledge Engine metadata.
+      if (!defectId && useParametriStore.getState().lastDefectFix) {
+        useParametriStore.setState({ lastDefectFix: null })
+        try { window.localStorage.removeItem('fm:lastDefectFix') } catch (_) {}
+      }
       if (defectId) {
         const fix = applyDefectFix(defectId, severity)
         const patched = applyDefectDeltaToInput(baseInput, fix.delta)

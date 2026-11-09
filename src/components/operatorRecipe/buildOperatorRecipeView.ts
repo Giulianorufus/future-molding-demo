@@ -1,4 +1,5 @@
 import type { CalculationResult } from '../../core/calcEngine'
+import { normalizeStringArray } from '../../lib/normalizeOutput'
 
 export type OperatorInjectionPhase = {
   step: number
@@ -7,6 +8,7 @@ export type OperatorInjectionPhase = {
 }
 
 export type OperatorRecipeView = {
+  warnings: string[]
   shotVolumeCm3: number | null
   vpVolumeCm3: number | null
   vpPercentOfShot: number | null
@@ -65,7 +67,12 @@ export function buildOperatorRecipeView(result: CalculationResult): OperatorReci
   const vpVolume = positiveNumber(result.vpSwitchVolumeCm3)
   const shotVolume = positiveNumber(result.shotVolumeCm3)
 
+  const warnings = unified?.warnings
+
   return {
+    warnings: Array.isArray(warnings)
+      ? normalizeStringArray(warnings.filter((item): item is string => typeof item === 'string'))
+      : [],
     shotVolumeCm3: shotVolume,
     vpVolumeCm3: vpVolume,
     vpPercentOfShot: vpVolume !== null ? positiveNumber(result.vpSwitchPercentOfShot) : null,
