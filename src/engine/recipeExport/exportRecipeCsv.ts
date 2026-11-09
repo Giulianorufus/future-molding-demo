@@ -7,6 +7,12 @@ function fmtNum(v: any): string {
   return Number.isFinite(n) ? n.toFixed(2) : String(v);
 }
 
+function escapeCsvField(value: string | number): string {
+  const field = String(value);
+  if (!/[;"\r\n]/.test(field)) return field;
+  return '"' + field.replace(/"/g, '""') + '"';
+}
+
 export function exportRecipeCsv(snapshot: RecipeSnapshot): string {
   // fixed column order
   const cols = [
@@ -43,5 +49,5 @@ export function exportRecipeCsv(snapshot: RecipeSnapshot): string {
     (snapshot.assumptions || []).join('|'),
   ];
 
-  return header + "\n" + row.join(";") + "\n";
+  return header + "\n" + row.map(escapeCsvField).join(";") + "\n";
 }
