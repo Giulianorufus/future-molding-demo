@@ -200,12 +200,15 @@ export function calculateParameters(input: CalcInput): CalcResult {
   const cavityCountConfirmed = Boolean((ds as any).cavityCountConfirmed);
   const feedSystem = ((ds as any).feedSystem ?? 'unknown') as 'unknown' | 'hot' | 'cold';
   const configuredRunnerVol = typeof (ds as any).runnerVolumeCm3 === 'number' ? Math.max(0, (ds as any).runnerVolumeCm3) : null;
-  const configuredRunnerArea = typeof (ds as any).runnerProjectedAreaCm2 === 'number' ? Math.max(0, (ds as any).runnerProjectedAreaCm2) : 0;
+  const runnerArea = ds.runnerProjectedAreaCm2;
+  const configuredRunnerArea = typeof runnerArea === 'number' && Number.isFinite(runnerArea) && runnerArea >= 0
+    ? runnerArea
+    : null;
   const singlePartArea = typeof input.projAreaCm2 === 'number' && input.projAreaCm2 > 0
     ? input.projAreaCm2
     : (typeof (ds as any).surfaceCm2 === 'number' ? (ds as any).surfaceCm2 : undefined);
   const projArea = typeof singlePartArea === 'number'
-    ? singlePartArea * cavityCount + (feedSystem === 'cold' ? configuredRunnerArea : 0)
+    ? singlePartArea * cavityCount + (feedSystem === 'cold' ? (configuredRunnerArea ?? 0) : 0)
     : undefined;
   const effectivePress: any = press ?? (input as any).machine ?? {};
   const clampBaseTon = effectivePress.clampForceTon ?? (effectivePress.tonnellaggio_kN ? Math.round(effectivePress.tonnellaggio_kN / 9.80665) : 0);
@@ -307,6 +310,7 @@ export function calculateParameters(input: CalcInput): CalcResult {
   if (!cavityCountConfirmed) warnings.push('Numero cavità non confermato: dose e forza di chiusura sono provvisorie');
   if (feedSystem === 'unknown') warnings.push('Sistema di alimentazione non noto: dose e forza di chiusura sono provvisorie');
   if (feedSystem === 'cold' && configuredRunnerVol === null) warnings.push('Volume materozza/canali non inserito: dose calcolata sui soli pezzi');
+  if (feedSystem === 'cold' && configuredRunnerArea === null) warnings.push('Area proiettata dei canali freddi non disponibile: forza di chiusura provvisoria');
   const vpGeometryConfirmed = cavityCountConfirmed && Number.isInteger(ds.cavityCount) && ds.cavityCount > 0 &&
     feedSystem !== 'unknown' &&
     (feedSystem !== 'cold' || (configuredRunnerVol !== null && Number.isFinite(configuredRunnerVol))) &&
@@ -717,7 +721,8 @@ export function calcolaParametri(input: UserCalcInput): UserCalcOutput {
 
     temperature: tempOut,
 
-    suggerimenti: internal.suggestions ?? internal.suggestions ?? [],
+    warnings: internal.warnings ?? [],
+    suggerimenti: internal.suggestions ?? [],
   };
 
   (out as any).profiloIniezione = buildInjectionProfile(Number(out.velIniezione ?? 0));

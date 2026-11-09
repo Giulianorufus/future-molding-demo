@@ -11,6 +11,7 @@ import { materialLibrary } from '../data/materialLibrary';
 import { useMaterialStore } from '../stores/materialStore';
 import { usePressStore } from '../stores/pressStore';
 import { downloadBlob } from '../utils/download';
+import { normalizeStringArray } from '../lib/normalizeOutput';
 
 export function buildExportRecipeSnapshot({
   input,
@@ -29,6 +30,9 @@ export function buildExportRecipeSnapshot({
 }): RecipeSnapshot {
   const canonicalMaterial = material ? materialLibrary.byId(material.id) : undefined;
   const densityGPerCm3 = material?.densityGPerCm3 ?? canonicalMaterial?.density_g_cm3;
+  const warnings = [output?.warnings, output?.unified?.warnings].flatMap((items) =>
+    Array.isArray(items) ? items.filter((item): item is string => typeof item === 'string') : [],
+  );
   return buildRecipeSnapshot({
     input: {
       ...(input ?? {}),
@@ -71,7 +75,7 @@ export function buildExportRecipeSnapshot({
           },
         }
       : undefined,
-    warnings: (output as any)?.warnings ?? [],
+    warnings: normalizeStringArray(warnings),
     assumptions: (output as any)?.assumptions ?? [],
     defect: (output as any)?.defect ?? null,
   });
@@ -99,7 +103,7 @@ export function ExportRecipeButton() {
   };
 
   return (
-    <button className="btn btn-primary" onClick={onClick} disabled={!result}>Esporta ricetta</button>
+    <button className="fm-action" onClick={onClick} disabled={!result}>Esporta ricetta</button>
   );
 }
 

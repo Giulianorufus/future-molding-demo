@@ -1,3 +1,5 @@
+import { buildRecipeSnapshot } from '../recipeExport/buildRecipeSnapshot';
+import { exportRecipeJson } from '../recipeExport/exportRecipeJson';
 import { calculateParameters } from '../calcEngine';
 import { calcolaParametri as calculateWizard } from '../../core/calcEngine';
 import { useDrawingStore } from '../../stores/drawingStore';
@@ -98,6 +100,48 @@ describe('calculateParameters basic scenarios', () => {
     }
   });
 
+  test('keeps PC 320 C cold shot and injected V/P distinct through recipe export', () => {
+    const pieceVolume = 5.2 / 1.2;
+    const runnerVolume = 2.8 / 1.2;
+    useDrawingStore.setState({
+      volumeCm3: pieceVolume,
+      cavityCount: 1,
+      cavityCountConfirmed: true,
+      feedSystem: 'cold',
+      runnerVolumeCm3: runnerVolume,
+      runnerProjectedAreaCm2: null,
+    });
+    try {
+      const output = calculateWizard({
+        volumeCm3: pieceVolume,
+        projectedAreaCm2: 10,
+        press: {
+          id: 'arburg-50t',
+          tonnellaggio: 500 / 9.80665,
+          screwDiameters: [30],
+          screwDiameterMm: 30,
+          maxPressureBar: 2000,
+          maxSpeedMmPerS: 136,
+          maxInjectionFlowCm3s: 96,
+        },
+        material: { id: 'PC', densityGPerCm3: 1.2 },
+      });
+      const snapshot = buildRecipeSnapshot({ projectName: 'PC 320 C', input: {}, output });
+      const exported = JSON.parse(exportRecipeJson(snapshot)).output;
+
+      expect(output.unified).toMatchObject({
+        warnings: expect.arrayContaining([
+          'Area proiettata dei canali freddi non disponibile: forza di chiusura provvisoria',
+        ]),
+      });
+      expect(exported.shotVolumeCm3).toBe(6.666667);
+      expect(exported.vpSwitchVolumeCm3).toBeGreaterThan(runnerVolume);
+      expect(exported.vpSwitchVolumeCm3).toBeLessThan(exported.shotVolumeCm3);
+    } finally {
+      useDrawingStore.getState().reset();
+    }
+  });
+
   test('does not invent a V/P setpoint when mold configuration is incomplete', () => {
     useDrawingStore.getState().reset();
     const result = calculateParameters({
@@ -109,5 +153,13 @@ describe('calculateParameters basic scenarios', () => {
     expect(result.vpSwitchVolumeCm3).toBeNull();
     expect(result.vpTimeMs).toBeNull();
     expect(result.warnings).toEqual(expect.arrayContaining([expect.stringMatching(/Commutazione V\/P non disponibile/)]));
+
+    const wizard = calculateWizard({ volumeCm3: 4.326812, material: { id: 'PP-HOMO' } });
+    expect(wizard.unified).toMatchObject({
+      warnings: expect.arrayContaining([
+        expect.stringMatching(/Numero cavità non confermato/),
+        expect.stringMatching(/Commutazione V\/P non disponibile/),
+      ]),
+    });
   });
 });

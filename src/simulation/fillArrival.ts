@@ -353,7 +353,8 @@ export function buildSurfaceFillArrival(source: THREE.BufferGeometry, gateLocal:
     maxDistance = Math.max(maxDistance, dist[i])
   }
   const arrival = new Float32Array(position.count)
-  for (let i = 0; i < dist.length; i++) arrival[i] = Number.isFinite(dist[i]) ? (maxDistance > 0 ? dist[i] / maxDistance : 0) : 1
+  // Keep disconnected surfaces hidden even at the final playback frame.
+  for (let i = 0; i < dist.length; i++) arrival[i] = Number.isFinite(dist[i]) ? (maxDistance > 0 ? dist[i] / maxDistance : 0) : 2
   geometry.setAttribute('fillArrival', new THREE.BufferAttribute(arrival, 1))
   geometry.userData.fillReachability = {
     reachedVertices: reached,
