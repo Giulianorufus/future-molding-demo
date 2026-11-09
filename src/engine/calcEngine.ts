@@ -691,7 +691,7 @@ export function calcolaParametri(input: UserCalcInput): UserCalcOutput {
     spessoreMedio: geometry.spessoreMedio_mm,
 
     velIniezione: internal.velIniezione ?? internal.injectionSpeedCm3s ?? internal.suggestedInjectionSpeedCm3s,
-    pressioneIniezione: internal.pressioneIniezione ?? internal.computedInjectionPressure_bar ?? internal.holdingPressureBar,
+    pressioneIniezione: internal.computedInjectionPressure_bar ?? internal.pressioneIniezione,
     fillTime: internal.fillTime ?? internal.fillTime_s,
 
     vp: internal.vpSwitchVolumeCm3 ?? null,
