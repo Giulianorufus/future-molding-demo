@@ -16,8 +16,11 @@ export function mapLegacyDefectId(id: LegacyDefectId): DefectId | null {
       return "flash";
     case "RITIRO":
     case "SINK":
+    case "SINK_MARK":
+    case "SINK_MARKS":
       return "sink";
     case "DEFORMAZIONE":
+    case "DEFORMAZIONI":
     case "WARPAGE":
       return "warpage";
     default:

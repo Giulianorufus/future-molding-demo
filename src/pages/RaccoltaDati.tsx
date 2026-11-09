@@ -109,7 +109,7 @@ export default function RaccoltaDati() {
     <div>
       <h1 className="text-3xl font-bold mb-6">Raccolta Dati</h1>
 
-      <div className="bg-white shadow rounded-xl p-6 overflow-auto">
+      <div className="fm-card overflow-auto p-6">
         <h2 className="text-xl font-semibold mb-4">Importa esiti produzione (CSV)</h2>
 
         <div className="flex gap-4 items-center">

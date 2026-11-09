@@ -7,6 +7,10 @@ export default function Step2Mold({ onNext, onBack }: { onNext?: () => void; onB
   const feedSystem = useDrawingStore((s) => s.feedSystem)
   const runnerVolumeCm3 = useDrawingStore((s) => s.runnerVolumeCm3)
   const runnerProjectedAreaCm2 = useDrawingStore((s) => s.runnerProjectedAreaCm2)
+  const moldFootprintXmm = useDrawingStore((s) => s.moldFootprintXmm)
+  const moldFootprintYmm = useDrawingStore((s) => s.moldFootprintYmm)
+  const moldHeightMm = useDrawingStore((s) => s.moldHeightMm)
+  const requiredOpeningMm = useDrawingStore((s) => s.requiredOpeningMm)
   const partVolume = useDrawingStore((s) => s.volumeCm3)
   const partProjectedArea = useDrawingStore((s) => s.surfaceCm2)
   const setResult = useDrawingStore((s) => s.setResult)
@@ -60,6 +64,21 @@ export default function Step2Mold({ onNext, onBack }: { onNext?: () => void; onB
           </label>
         </div>
       )}
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <label className="text-sm">Ingombro stampo X (mm)
+          <input type="number" min={0} step="1" value={moldFootprintXmm ?? ''} onChange={(e) => setResult({ moldFootprintXmm: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} className="block mt-1 w-full px-3 py-2 border rounded" />
+        </label>
+        <label className="text-sm">Ingombro stampo Y (mm)
+          <input type="number" min={0} step="1" value={moldFootprintYmm ?? ''} onChange={(e) => setResult({ moldFootprintYmm: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} className="block mt-1 w-full px-3 py-2 border rounded" />
+        </label>
+        <label className="text-sm">Altezza stampo chiuso (mm)
+          <input type="number" min={0} step="1" value={moldHeightMm ?? ''} onChange={(e) => setResult({ moldHeightMm: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} className="block mt-1 w-full px-3 py-2 border rounded" />
+        </label>
+        <label className="text-sm">Apertura necessaria (mm)
+          <input type="number" min={0} step="1" value={requiredOpeningMm ?? ''} onChange={(e) => setResult({ requiredOpeningMm: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} className="block mt-1 w-full px-3 py-2 border rounded" />
+        </label>
+      </div>
 
       <div className="bg-gray-50 border rounded p-3 text-sm">
         <div>Volume pezzi/stampata: <strong>{totalPartVolume.toFixed(2)} cm³</strong></div>

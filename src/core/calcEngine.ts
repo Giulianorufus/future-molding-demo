@@ -6,6 +6,7 @@
  * Keep this file free of independent molding formulas.
  */
 import { calcolaParametri as calculateUnified } from '../engine/calcEngine'
+import { linearScrewSpeedToFlowCm3s } from '../engine/units/injectionFlow'
 import type { CadAnalysisMeta } from '../types/cadAnalysisMeta'
 
 export type CalculationInput = {
@@ -20,6 +21,7 @@ export type CalculationInput = {
     screwDiameterMm?: number
     maxPressureBar: number
     maxSpeedMmPerS: number
+    maxInjectionFlowCm3s?: number
     maxShotVolumeCm3?: number
   } | null
   material?: {
@@ -31,10 +33,13 @@ export type CalculationInput = {
 
 export type CalculationResult = {
   tonnellaggioRequired: number
+  shotVolumeCm3: number
+  vpSwitchVolumeCm3: number | null
+  vpSwitchPercentOfShot: number | null
   pressureBar: number
   screwDiameterMm: number
-  velocityMmPerS: number
-  switchoverMs: number
+  injectionFlowCm3s: number
+  switchoverMs: number | null
   times: { injectionMs: number; coolingMs: number }
   cooling: { suggestedC: number }
   unified?: unknown
@@ -68,9 +73,9 @@ export function calcolaParametri(input: CalculationInput, _context?: CalcContext
       tonnellaggio_kN: toFinite(press?.tonnellaggio) * 9.80665,
       screwDiameter_mm: screw,
       maxInjectionPressure_bar: press?.maxPressureBar,
-      // Legacy catalog calls this mm/s; the compatibility boundary passes the
-      // configured machine maximum through without inventing another formula.
-      maxInjectionSpeed_cm3_s: press?.maxSpeedMmPerS,
+      maxInjectionSpeed_cm3_s: press?.maxInjectionFlowCm3s
+        ?? linearScrewSpeedToFlowCm3s(press?.maxSpeedMmPerS, screw)
+        ?? undefined,
       maxShotVolume_cm3: press?.maxShotVolumeCm3,
     },
     geometry: {
@@ -83,15 +88,17 @@ export function calcolaParametri(input: CalculationInput, _context?: CalcContext
   const out: any = calculateUnified(unifiedInput)
   const fillSec = Math.max(0, toFinite(out.fillTime, 0))
   const coolingSec = Math.max(0, toFinite(out.coolingTime, 0))
-  const vpCm3 = Math.max(0, toFinite(out.vp, 0))
   const flowCm3s = Math.max(0, toFinite(out.velIniezione, 0))
-  const switchoverMs = flowCm3s > 0 ? Math.round((vpCm3 / flowCm3s) * 1000) : 0
+  const switchoverMs = typeof out.vpTimeMs === 'number' && Number.isFinite(out.vpTimeMs) ? out.vpTimeMs : null
 
   return {
     tonnellaggioRequired: Number(toFinite(out.tonnellaggio, 0).toFixed(1)),
+    shotVolumeCm3: toFinite(out.shotVolumeCm3, input.shotVolumeCm3 ?? input.volumeCm3),
+    vpSwitchVolumeCm3: typeof out.vpSwitchVolumeCm3 === 'number' ? out.vpSwitchVolumeCm3 : null,
+    vpSwitchPercentOfShot: typeof out.vpSwitchPercentOfShot === 'number' ? out.vpSwitchPercentOfShot : null,
     pressureBar: Math.round(toFinite(out.pressioneIniezione, 0)),
     screwDiameterMm: screw,
-    velocityMmPerS: Math.round(flowCm3s),
+    injectionFlowCm3s: Math.round(flowCm3s),
     switchoverMs,
     times: {
       injectionMs: Math.max(1, Math.round(fillSec * 1000)),

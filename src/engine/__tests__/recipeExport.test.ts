@@ -16,11 +16,27 @@ describe('recipe export', () => {
   });
 
   test('csv header order and separator', () => {
-    const snap = buildRecipeSnapshot({ projectName: 'P', input: {}, output: {} });
+    const snap = buildRecipeSnapshot({ projectName: 'P', input: {}, output: { shotVolumeCm3: 19.307248 } });
     const csv = exportRecipeCsv(snap);
     const lines = csv.trim().split('\n');
     expect(lines[0].includes(';')).toBe(true);
     expect(lines[0].startsWith('projectName;')).toBe(true);
+    const shotIndex = lines[0].split(';').indexOf('shotVolumeCm3');
+    expect(lines[1].split(';')[shotIndex]).toBe('19.307248');
+  });
+
+  test('csv quotes separators, quotes and line breaks inside fields', () => {
+    const snap = buildRecipeSnapshot({
+      projectName: 'PC; "320 C"',
+      input: {},
+      output: {},
+    });
+    snap.warnings = ['Pressione; da verificare', 'Seconda riga\nDettaglio'];
+    snap.assumptions = ['Quota\rda confermare'];
+
+    const csv = exportRecipeCsv(snap);
+    expect(csv.split('\n')[1].startsWith('"PC; ""320 C""";')).toBe(true);
+    expect(csv.endsWith(';"Pressione; da verificare|Seconda riga\nDettaglio";"Quota\rda confermare"\n')).toBe(true);
   });
 
   test('pdf smoke: generates bytes starting with %PDF', async () => {

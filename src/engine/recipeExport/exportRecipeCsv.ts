@@ -7,6 +7,12 @@ function fmtNum(v: any): string {
   return Number.isFinite(n) ? n.toFixed(2) : String(v);
 }
 
+function escapeCsvField(value: string | number): string {
+  const field = String(value);
+  if (!/[;"\r\n]/.test(field)) return field;
+  return '"' + field.replace(/"/g, '""') + '"';
+}
+
 export function exportRecipeCsv(snapshot: RecipeSnapshot): string {
   // fixed column order
   const cols = [
@@ -20,6 +26,7 @@ export function exportRecipeCsv(snapshot: RecipeSnapshot): string {
     "press_screw_mm",
     "material_id",
     "material_name",
+    "shotVolumeCm3",
     "warnings",
     "assumptions",
   ];
@@ -37,9 +44,10 @@ export function exportRecipeCsv(snapshot: RecipeSnapshot): string {
     snapshot.press?.screwDiameter_mm ? fmtNum(snapshot.press.screwDiameter_mm) : "",
     snapshot.material?.id ?? "",
     snapshot.material?.name ?? "",
+    snapshot.output?.shotVolumeCm3 ?? snapshot.input?.shotVolumeCm3 ?? "",
     (snapshot.warnings || []).join('|'),
     (snapshot.assumptions || []).join('|'),
   ];
 
-  return header + "\n" + row.join(";") + "\n";
+  return header + "\n" + row.map(escapeCsvField).join(";") + "\n";
 }
