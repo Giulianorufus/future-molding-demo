@@ -56,6 +56,18 @@ const verifiedArburgEntries: Record<string, PressSpec> = Object.fromEntries(
 
 const initialCatalog: Record<string, PressSpec> = {
   [arburg.id]: arburg as PressSpec,
+  'arburg-320-c-reference': {
+    id: 'arburg-320-c-reference',
+    name: 'Arburg ALLROUNDER 320 C · riferimento reparto',
+    tonnellaggio: 50,
+    clampForceKn: 50 * KN_PER_METRIC_TON,
+    screwDiameters: [30],
+    shotVolumeCm3: 0,
+    maxPressureBar: 0,
+    maxSpeedMmPerS: 0,
+    dataStatus: 'reference',
+    source: 'Scheda fotografata del caso PC 320 C: 50 t e vite Ø30 mm. Limiti unità da verificare su targa.',
+  },
   [engel.id]: engel as PressSpec,
   [toyo.id]: toyo as PressSpec,
   [bmb.id]: bmb as PressSpec,

@@ -83,7 +83,7 @@ export default function OperatorRecipePanel({ result, compatibility }: OperatorR
             <h3 className="fm-panel-title">1. Iniezione</h3>
             <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Metric label="Portata suggerita" value={show(recipe.injectionFlowCm3s, 'cm³/s')} source="Stima del motore con i limiti pressa disponibili" />
-              <Metric label="Pressione teorica · da verificare" value={show(recipe.injectionPressureBar, 'bar')} source="Stima del motore da confrontare con la pressione misurata in pressa" highlight />
+              <Metric label="Pressione empirica · da verificare" value={show(recipe.injectionPressureBar, 'bar')} source="Stima empirica della ricetta. La verifica fisica del percorso è separata." highlight />
             </dl>
             <h4 className="mt-4 text-sm font-semibold">Fasi di riempimento</h4>
             {recipe.injectionPhases.length > 0 ? (
