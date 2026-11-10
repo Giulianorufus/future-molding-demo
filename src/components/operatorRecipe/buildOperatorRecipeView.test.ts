@@ -37,6 +37,7 @@ describe('vista operatore', () => {
       { step: 2, flowCm3s: 20, endPercentOfShot: 97.76 },
     ])
     expect(view.holdingPressureBar).toBe(750)
+    expect(view.coolingTimeSec).toBe(20)
     expect(view.screwRpm).toBe(42)
   })
 
@@ -62,9 +63,10 @@ describe('vista operatore', () => {
   })
 
   it('non inventa valori per i dati assenti', () => {
-    const view = buildOperatorRecipeView(recipe({ unified: null }))
+    const view = buildOperatorRecipeView(recipe({ unified: null, times: { injectionMs: 137, coolingMs: 1 } }))
     expect(view.injectionPhases).toEqual([])
     expect(view.holdingPressureBar).toBeNull()
     expect(view.screwRpm).toBeNull()
+    expect(view.coolingTimeSec).toBeNull()
   })
 })

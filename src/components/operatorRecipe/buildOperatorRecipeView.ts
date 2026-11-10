@@ -1,4 +1,5 @@
 import type { CalculationResult } from '../../core/calcEngine'
+import { positiveProcessValue as positiveNumber, readRecipeProcessValues } from '../../engine/recipeProcessValues'
 import { normalizeStringArray } from '../../lib/normalizeOutput'
 
 export type OperatorInjectionPhase = {
@@ -21,7 +22,7 @@ export type OperatorRecipeView = {
   screwRpm: number | null
   plastificationTimeSec: number | null
   backPressureBar: number | null
-  coolingTimeMs: number | null
+  coolingTimeSec: number | null
   requiredClampTon: number | null
   screwDiameterMm: number | null
 }
@@ -30,10 +31,6 @@ function record(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
     : null
-}
-
-function positiveNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null
 }
 
 function injectionPhases(value: unknown, vpAvailable: boolean): OperatorInjectionPhase[] {
@@ -68,6 +65,7 @@ export function buildOperatorRecipeView(result: CalculationResult): OperatorReci
   const shotVolume = positiveNumber(result.shotVolumeCm3)
 
   const warnings = unified?.warnings
+  const process = readRecipeProcessValues(result)
 
   return {
     warnings: Array.isArray(warnings)
@@ -80,12 +78,12 @@ export function buildOperatorRecipeView(result: CalculationResult): OperatorReci
     injectionFlowCm3s: positiveNumber(result.injectionFlowCm3s),
     injectionPressureBar: positiveNumber(result.pressureBar),
     injectionPhases: injectionPhases(unified?.injectionProfile, vpVolume !== null),
-    holdingPressureBar: positiveNumber(unified?.packPressione),
-    holdingTimeSec: positiveNumber(unified?.packTempo),
+    holdingPressureBar: process.holdingPressureBar,
+    holdingTimeSec: process.holdingTimeSec,
     screwRpm: positiveNumber(unified?.velocitaVite),
     plastificationTimeSec: positiveNumber(unified?.tempoDosatura),
     backPressureBar: positiveNumber(unified?.contropressione),
-    coolingTimeMs: positiveNumber(result.times?.coolingMs),
+    coolingTimeSec: process.coolingTimeSec,
     requiredClampTon: positiveNumber(result.tonnellaggioRequired),
     screwDiameterMm: positiveNumber(result.screwDiameterMm),
   }

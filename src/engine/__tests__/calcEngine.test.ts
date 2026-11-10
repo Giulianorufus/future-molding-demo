@@ -136,6 +136,12 @@ describe('calculateParameters basic scenarios', () => {
       });
       // In this fixture, 10 cm² is a hypothetical area. The pressure estimate
       // comes from the filling model and must stay distinct from the 2000 bar limit.
+      expect(output.times.coolingMs).toBeNull();
+      expect(exported).toMatchObject({ holdingPressureBar: null, holdingTimeSec: null, coolingTimeSec: null });
+      expect(exported.unified.warnings).toEqual(expect.arrayContaining([
+        expect.stringContaining('Mantenimento da determinare'),
+        expect.stringContaining('Raffreddamento da determinare'),
+      ]));
       expect(exported.pressureBar).toBeGreaterThan(100);
       expect(exported.pressureBar).toBeLessThan(2000);
       expect(exported.unified.profiloPressione.step2).toBe(exported.pressureBar);

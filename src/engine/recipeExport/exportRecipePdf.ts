@@ -1,5 +1,6 @@
 // src/engine/recipeExport/exportRecipePdf.ts
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { readRecipeProcessValues } from "../recipeProcessValues";
 import type { RecipeSnapshot } from './recipeTypes';
 
 export async function exportRecipePdf(snapshot: RecipeSnapshot): Promise<Uint8Array> {
@@ -41,9 +42,19 @@ export async function exportRecipePdf(snapshot: RecipeSnapshot): Promise<Uint8Ar
   page.drawText('Key Outputs', { x: 40, y, size: 12, font });
   y -= 14;
   const out = snapshot.output || {};
-  const keys = ['shotVolumeCm3', 'injectionSpeedCm3s', 'holdingPressureBar', 'clampForceTon', 'coolingTimeSec'];
+  const process = readRecipeProcessValues(out);
+  const keys = ['shotVolumeCm3', 'injectionSpeedCm3s', 'clampForceTon'];
   for (const k of keys) {
     page.drawText(`${k}: ${String(out[k] ?? (k === 'shotVolumeCm3' ? snapshot.input?.shotVolumeCm3 : '') ?? '')}`, { x: 60, y, size: textSize, font });
+    y -= 12;
+  }
+
+  for (const [label, value, unit] of [
+    ['Pressione mantenimento', process.holdingPressureBar, 'bar'],
+    ['Tempo mantenimento', process.holdingTimeSec, 's'],
+    ['Raffreddamento', process.coolingTimeSec, 's'],
+  ] as const) {
+    page.drawText(`${label}: ${value === null ? 'Da determinare' : value + ' ' + unit}`, { x: 60, y, size: textSize, font });
     y -= 12;
   }
 

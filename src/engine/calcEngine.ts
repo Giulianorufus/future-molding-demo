@@ -11,6 +11,7 @@ import { resolveMaterialOrFallback } from "../data/materialLibrary";
 import { applyPressLimits } from "../lib/pressLimits";
 import { parseOverride } from "../utils/overrides";
 import { enforceSafety } from "./safetyChecks";
+import { positiveProcessValue } from "./recipeProcessValues";
 import { useDrawingStore } from "../stores/drawingStore";
 import type { GeometrySummary, PackResult, TonnageResult, TemperatureSuggestion, CalcSuggestions } from "./calcTypes";
 import { buildInjectionProfile as buildVolumeInjectionProfile } from "./profiles/buildInjectionProfile";
@@ -682,6 +683,17 @@ export function calcolaParametri(input: UserCalcInput): UserCalcOutput {
 
   const tempOut: UserTemperatureOutput = { z1: Math.round(z1), z2: Math.round(z2), z3: Math.round(z3), z4: Math.round(z4), stampo: Math.round(stampo), ugello: Math.round(ugello) };
 
+  const packPressione = positiveProcessValue(internal.packPressione);
+  const packTempo = positiveProcessValue(internal.packTempo);
+  const coolingTime = positiveProcessValue(internal.coolingTime);
+  const warnings = [...(internal.warnings ?? [])];
+  if (packPressione === null || packTempo === null) {
+    warnings.push('Mantenimento da determinare: verificare pressione e tempo di tenuta con una prova in pressa');
+  }
+  if (coolingTime === null) {
+    warnings.push('Raffreddamento da determinare: serve uno spessore utile o un tempo misurato sul ciclo');
+  }
+
   const out: any = {
     volumePezzo: geometry.volumePezzo_cm3,
     shotVolumeCm3: internal.shotVolumeCm3,
@@ -701,10 +713,10 @@ export function calcolaParametri(input: UserCalcInput): UserCalcOutput {
     switchover_volumePercent: internal.vpSwitchPercentOfShot ?? null,
     injectionProfile: internal.injectionProfile?.steps,
 
-    packPressione: internal.packPressione ?? internal.packPressureBar ?? internal.packPressureBar,
-    packTempo: internal.packTempo ?? internal.packTimeComputedSec ?? internal.packTimeSec,
+    packPressione,
+    packTempo,
 
-    coolingTime: internal.coolingTime ?? internal.coolingFromThicknessSec ?? internal.coolingTimeSec,
+    coolingTime,
 
     velocitaVite: internal.screwRpm,
     contropressione: internal.backPressureBar,
@@ -721,13 +733,13 @@ export function calcolaParametri(input: UserCalcInput): UserCalcOutput {
 
     temperature: tempOut,
 
-    warnings: internal.warnings ?? [],
+    warnings,
     suggerimenti: internal.suggestions ?? [],
   };
 
   (out as any).profiloIniezione = buildInjectionProfile(Number(out.velIniezione ?? 0));
   (out as any).profiloPressione = buildPressureProfile(Number(out.pressioneIniezione ?? 0));
-  (out as any).profiloPack = buildPackProfile(Number(out.packPressione ?? 0));
+  if (packPressione !== null && packTempo !== null) out.profiloPack = buildPackProfile(packPressione);
 
   // separa suggerimenti dal resto per applicare il safety layer
   const { suggerimenti, ...base } = out as any;

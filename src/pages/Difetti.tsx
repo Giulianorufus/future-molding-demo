@@ -1,3 +1,4 @@
+import { readRecipeProcessValues } from '@/engine/recipeProcessValues'
 import { useState } from 'react'
 import { useDrawingStore } from '@/stores/drawingStore'
 import { useParametriStore } from '@/stores/parametriStore'
@@ -23,6 +24,7 @@ export default function DifettiPage() {
   const pressId = usePressStore(s => s.selectedPressId)
   const materialId = useMaterialStore(s => s.selectedMaterialId)
   const result = useParametriStore(s => s.result)
+  const coolingTimeSec = result ? readRecipeProcessValues(result).coolingTimeSec : null
   const loading = useParametriStore(s => s.loading)
   const error = useParametriStore(s => s.error)
   const lastDefectFix = useParametriStore(s => s.lastDefectFix)
@@ -74,7 +76,7 @@ export default function DifettiPage() {
             <div><dt className="font-medium">Pressione iniezione</dt><dd>{result.pressureBar ?? '—'} bar</dd></div>
             <div><dt className="font-medium">Commutazione V/P</dt><dd>{result.vpSwitchVolumeCm3?.toFixed(2) ?? '—'} cm³ iniettati</dd></div>
             <div><dt className="font-medium">Tempo iniezione</dt><dd>{result.times?.injectionMs ?? '—'} ms</dd></div>
-            <div><dt className="font-medium">Raffreddamento</dt><dd>{result.times?.coolingMs ?? '—'} ms</dd></div>
+            <div><dt className="font-medium">Raffreddamento</dt><dd>{coolingTimeSec === null ? 'Da determinare' : coolingTimeSec + ' s'}</dd></div>
             <div><dt className="font-medium">Chiusura richiesta</dt><dd>{result.tonnellaggioRequired ?? '—'} t</dd></div>
           </dl> : !loading && <p className="text-slate-500">Completa il Wizard per ottenere la ricetta iniziale.</p>}
           {lastDefectFix && automaticCorrection && mapLegacyDefectId(lastDefectFix.defectId) === automaticCorrection && <div className="mt-4 border-t border-slate-200 pt-3">
