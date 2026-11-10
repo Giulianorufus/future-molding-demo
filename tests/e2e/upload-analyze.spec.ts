@@ -49,6 +49,16 @@ test('STEP reale, ricetta iniziale e prova correttiva da Difetti', async ({ page
   await diagnosis.getByLabel('Massimo validato (bar)').fill('650');
   await expect(diagnosis.getByText('600 → 580 bar', { exact: false })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Ricetta iniziale' })).toBeVisible();
+  await page.getByRole('button', { name: 'Affossamenti', exact: true }).click();
+  await expect(diagnosis.getByText('600 → 580 bar', { exact: false })).toHaveCount(0);
+  await diagnosis.getByRole('combobox', { name: /in corrispondenza di nervature/ }).selectOption('yes');
+  await diagnosis.getByRole('combobox', { name: /il peso del pezzo aumenta ancora/ }).selectOption('yes');
+  await diagnosis.getByRole('combobox', { name: /raffreddata male/ }).selectOption('no');
+  await diagnosis.getByLabel('Tempo attuale (s)').fill('3');
+  await diagnosis.getByLabel('Minimo validato (s)').fill('2.5');
+  await diagnosis.getByLabel('Massimo validato (s)').fill('3.15');
+  await expect(diagnosis.getByText('3 → 3.15 s', { exact: false })).toBeVisible();
+
 });
 
 test.describe('Wizard su viewport iPhone', () => {

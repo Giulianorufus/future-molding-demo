@@ -14,3 +14,12 @@ test('respects the process window and verified press maximum', () => {
   expect(proposeDefectRecipeTrial('flash', observed, { ...window, minimum: 580 })).toMatchObject({ after: 580 })
   expect(proposeDefectRecipeTrial('flash', observed, { ...window, minimum: 600 })).toBeNull()
 })
+
+test('an observed sink mark can yield a bounded holding-time change', () => {
+  const observations = { location: 'yes', holdingResponse: 'yes', cooling: 'no' }
+  const timeWindow = { current: 3, minimum: 2.5, maximum: 3.15 }
+  expect(proposeDefectRecipeTrial('sink-mark', observations, timeWindow)).toMatchObject({ before: 3, after: 3.15 })
+  expect(proposeDefectRecipeTrial('sink-mark', { ...observations, location: 'no' }, timeWindow)).toBeNull()
+  expect(proposeDefectRecipeTrial('sink-mark', { ...observations, cooling: 'unknown' }, timeWindow)).toBeNull()
+  expect(proposeDefectRecipeTrial('sink-mark', observations, { ...timeWindow, maximum: 3 })).toBeNull()
+})

@@ -47,3 +47,15 @@ test('a confirmed zone can yield a bounded trial, and changing the zone removes 
   fireEvent.click(screen.getByRole('button', { name: 'Ricomincia le domande' }))
   expect(await screen.findByText('0 di 3 risposte · 0 osservazioni verificate')).toBeVisible()
 })
+
+test('a nearby gate affects the diagnosis only after confirmation and clears with the marker', async () => {
+  const { rerender } = render(<GuidedDefectDiagnosis {...props} gateHintKey="point-a" />)
+  const zone = screen.getByRole('combobox', { name: 'Dove si vedono i segni scuri?' })
+  expect(zone).toHaveValue('')
+  fireEvent.click(screen.getByRole('button', { name: 'Conferma vicino all’attacco' }))
+  expect(zone).toHaveValue('gate')
+  expect(await screen.findByRole('heading', { name: '1. Riscaldamento da taglio in un passaggio ristretto' })).toBeVisible()
+  rerender(<GuidedDefectDiagnosis {...props} />)
+  expect(zone).toHaveValue('')
+  expect(await screen.findByText('0 di 3 risposte · 0 osservazioni verificate')).toBeVisible()
+})

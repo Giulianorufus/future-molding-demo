@@ -8,7 +8,7 @@ export type ThreeViewerProps = {
   pins?: DefectPin[];
   selectedPinId?: string | null;
   selectedPin?: { x: number; y: number; z: number } | null;
-  onPickPoint?: (point: SurfacePoint) => void;
+  onPickPoint?: (point: SurfacePoint, localPoint: SurfacePoint, localSpan: number) => void;
   onSelectPin?: (id: string | null) => void;
 };
 
@@ -50,6 +50,7 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
 
     let stop = false;
     let controls: any = null;
+    let localSpan = 0;
     let model: THREE.Object3D | null = null;
     const marker = new THREE.Mesh(
       new THREE.SphereGeometry(1.25, 16, 16),
@@ -79,7 +80,10 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
       );
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObject(model, true).find(entry => entry.object instanceof THREE.Mesh);
-      if (hit) onPick({ x: hit.point.x, y: hit.point.y, z: hit.point.z });
+      if (hit) {
+        const local = model.worldToLocal(hit.point.clone());
+        onPick({ x: hit.point.x, y: hit.point.y, z: hit.point.z }, { x: local.x, y: local.y, z: local.z }, localSpan);
+      }
     };
     renderer.domElement.addEventListener('pointerdown', startPick);
     renderer.domElement.addEventListener('pointerup', finishPick);
@@ -148,6 +152,7 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
             root.position.sub(center);
 
             const maxDim = Math.max(size.x, size.y, size.z) || 1;
+            localSpan = maxDim / Math.abs(root.scale.x);
             const scale = 80 / maxDim;
             root.scale.setScalar(scale);
 

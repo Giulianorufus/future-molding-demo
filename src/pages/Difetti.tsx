@@ -7,6 +7,7 @@ import { usePressStore } from '@/stores/pressStore'
 import { useMaterialStore } from '@/stores/materialStore'
 import ThreeViewer from '@/components/ThreeViewer'
 import DefectOutcomeLog from '@/components/DefectOutcomeLog'
+import { getNearbyGate } from '@/engine/knowledge/defectPointHint'
 import GuidedDefectDiagnosis from '@/components/GuidedDefectDiagnosis'
 import { DEFECT_GUIDES, DEFECT_CATEGORIES, getDefectGuide, searchDefectGuides, type DefectCategory } from '@/engine/knowledge/guidedDiagnosis'
 
@@ -15,6 +16,7 @@ export default function DifettiPage() {
   const [category, setCategory] = useState<DefectCategory | ''>('')
   const selectedDefectId = useDefectsStore(s => s.selectedDefectId)
   const selectedSeverity = useDefectsStore(s => s.selectedSeverity)
+  const gates = useDrawingStore(s => s.gates)
   const viewerUrl = useDrawingStore(s => s.viewerUrl)
   const volumeCm3 = useDrawingStore(s => s.volumeCm3)
   const conversionId = useDrawingStore(s => s.conversionId)
@@ -30,8 +32,12 @@ export default function DifettiPage() {
   const guide = getDefectGuide(selectedDefectId)
   const visibleGuides = searchDefectGuides(query, category)
   const observationKey = JSON.stringify([selectedDefectId, viewerUrl, conversionId, pressId, screwDiameter, materialId])
-  const [point, setPoint] = useState<{ key: string; x: number; y: number; z: number } | null>(null)
+  const [point, setPoint] = useState<{ key: string; x: number; y: number; z: number; local: { x: number; y: number; z: number }; span: number } | null>(null)
   const selectedPin = point?.key === observationKey ? point : null
+  const nearbyGate = selectedPin && guide?.id === 'burn-mark'
+    ? getNearbyGate(selectedPin.local, selectedPin.span, gates)
+    : null
+  const pointHint = nearbyGate && selectedPin ? JSON.stringify([selectedPin.local, nearbyGate.position]) : undefined
   const [markingKey, setMarkingKey] = useState<string | null>(null)
 
   useEffect(() => {
@@ -75,8 +81,8 @@ export default function DifettiPage() {
               {selectedPin && <button type="button" onClick={() => setPoint(null)}>Rimuovi punto</button>}
             </div>}
             <ThreeViewer viewerUrl={viewerUrl} selectedPin={selectedPin}
-              onPickPoint={markingKey === observationKey ? hit => {
-                setPoint({ ...hit, key: observationKey })
+              onPickPoint={markingKey === observationKey ? (hit, local, span) => {
+                setPoint({ ...hit, local, span, key: observationKey })
                 setMarkingKey(null)
               } : undefined} />
             {selectedPin && <p className="p-2 text-xs">Punto segnato. Indica anche la zona nelle domande quando disponibile.</p>}
@@ -99,7 +105,7 @@ export default function DifettiPage() {
           </dl> : !loading && <p className="text-slate-500">Completa il Wizard per ottenere la ricetta iniziale.</p>}
         </section>
       </div>
-      {selectedDefectId ? <GuidedDefectDiagnosis key={observationKey} defectId={selectedDefectId} severity={selectedSeverity} result={result} volumeCm3={volumeCm3} pressId={pressId} materialId={materialId} /> : <p className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm">Scegli il difetto: ti guiderò attraverso tre domande per ordinare le cause possibili e le azioni.</p>}
+      {selectedDefectId ? <GuidedDefectDiagnosis key={observationKey} gateHintKey={pointHint} defectId={selectedDefectId} severity={selectedSeverity} result={result} volumeCm3={volumeCm3} pressId={pressId} materialId={materialId} /> : <p className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm">Scegli il difetto: ti guiderò attraverso tre domande per ordinare le cause possibili e le azioni.</p>}
       {guide && <DefectOutcomeLog key={`outcome:${guide.id}:${viewerUrl}:${pressId}:${materialId}`} defectId={guide.id} pressId={pressId} materialId={materialId} result={!loading && !error ? result : null} />}
     </div>
   </div>
