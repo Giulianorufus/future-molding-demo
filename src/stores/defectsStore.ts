@@ -4,6 +4,8 @@ export type DefectSeverity = "low" | "medium" | "high"
 
 type DefectsState = {
   selectedDefectId: string | null
+  guidedOnly: boolean
+  selectForDiagnosis: (id: string) => void
   selectedSeverity: DefectSeverity
   setSelectedDefectId: (id: string | null) => void
   // backward-compat alias used by some UI/components
@@ -14,11 +16,13 @@ type DefectsState = {
 
 export const useDefectsStore = create<DefectsState>((set) => ({
   selectedDefectId: null,
+  guidedOnly: false,
+  selectForDiagnosis: (id) => set({ selectedDefectId: id, guidedOnly: true }),
   selectedSeverity: 'medium',
-  setSelectedDefectId: (id) => set({ selectedDefectId: id }),
-  setSelectedDefect: (id) => set({ selectedDefectId: id }),
+  setSelectedDefectId: (id) => set({ selectedDefectId: id, guidedOnly: false }),
+  setSelectedDefect: (id) => set({ selectedDefectId: id, guidedOnly: false }),
   setSelectedSeverity: (s) => set({ selectedSeverity: s }),
-  reset: () => set({ selectedDefectId: null, selectedSeverity: 'medium' }),
+  reset: () => set({ selectedDefectId: null, guidedOnly: false, selectedSeverity: 'medium' }),
 }))
 
 export default useDefectsStore

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import type { CalculationResult } from '@/core/calcEngine'
 import { inferKnowledgeRecommendations } from '@/engine/knowledge/knowledgeEngine'
 import { getDefectGuide, type DiagnosticAnswers } from '@/engine/knowledge/guidedDiagnosis'
+import { proposeDefectRecipeTrial } from '@/engine/knowledge/defectRecipeTrial'
+import { usePressStore } from '@/stores/pressStore'
 import type { KnowledgeResult } from '@/engine/knowledge/types'
 
 type Props = {
@@ -19,6 +21,16 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
   const [evaluation, setEvaluation] = useState<KnowledgeResult | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [pressure, setPressure] = useState({ current: '', minimum: '', maximum: '' })
+  const press = usePressStore(state => pressId ? state.catalog[pressId] : undefined)
+  const eligibleObservation = guide?.id === 'flash' && answers.location === 'distributed' &&
+    answers.phase === 'hold' && answers.mold === 'no'
+  const trial = result && pressId && materialId && eligibleObservation
+    ? proposeDefectRecipeTrial(guide.id, answers, {
+      current: Number(pressure.current), minimum: Number(pressure.minimum), maximum: Number(pressure.maximum),
+      pressMaximum: press?.dataStatus === 'complete' ? press.maxPressureBar : undefined,
+    })
+    : null
 
   useEffect(() => {
     let cancelled = false
@@ -53,7 +65,7 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
         <h2 className="text-xl font-semibold">Diagnosi guidata · {guide.label}</h2>
         <p className="mt-1 text-sm text-slate-600">Rispondi sui pezzi e sui dati osservati in pressa. Prova una modifica alla volta e confronta il risultato.</p>
       </div>
-      <button className="rounded-lg border border-blue-200 px-3 py-2 text-sm" onClick={() => setAnswers({})}>Ricomincia le domande</button>
+      <button className="rounded-lg border border-blue-200 px-3 py-2 text-sm" onClick={() => { setAnswers({}); setPressure({ current: '', minimum: '', maximum: '' }) }}>Ricomincia le domande</button>
     </div>
     {!result && <p className="rounded-lg bg-blue-50 p-3 text-sm">Puoi iniziare dalle osservazioni. Completa il Wizard per affiancare i parametri calcolati alle verifiche.</p>}
     <div className="grid gap-3 md:grid-cols-3">
@@ -65,6 +77,21 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
         </select>
       </label>)}
     </div>
+    {eligibleObservation && result && pressId && materialId && <section aria-label="Ricetta di prova" className="space-y-2 rounded border border-blue-200 p-3 text-sm">
+      <h3 className="font-semibold">Ricetta di prova · mantenimento</h3>
+      <p>Per il livello da provare, inserisci la pressione usata sulla pressa e la finestra validata per questa pressa, stampo e materiale, nella stessa unità di pressione.</p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {([['current', 'Pressione attuale (bar)'], ['minimum', 'Minimo validato (bar)'], ['maximum', 'Massimo validato (bar)']] as const).map(([key, label]) =>
+          <label key={key}>{label}<input type="number" min="0" step="any" className="block w-full rounded border p-2"
+            value={pressure[key]} onChange={event => setPressure(previous => ({ ...previous, [key]: event.target.value }))} /></label>
+        )}
+      </div>
+      {trial ? <>
+        <p><strong>Pressione di mantenimento</strong> {trial.before} → {trial.after} bar</p>
+        <p>{trial.reason}</p>
+        <p>Mantieni gli altri parametri della prova. Controlla bava, affossamenti e peso sul pezzo successivo.</p>
+      </> : <p>Pressione di prova da determinare. Servono i tre valori e margine per ridurre la pressione.</p>}
+    </section>}
     {loading && <p role="status" className="text-sm">Aggiornamento delle verifiche…</p>}
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     {report && <>

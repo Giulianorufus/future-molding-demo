@@ -399,7 +399,7 @@ if (typeof window !== 'undefined') {
 
       // Read defect selection and apply corrections (pure function)
       const defectsState: any = useDefectsStore.getState?.() ?? {}
-      const defectId = mapLegacyDefectId(defectsState.selectedDefectId)
+      const defectId = defectsState.guidedOnly ? null : mapLegacyDefectId(defectsState.selectedDefectId)
       const severity = mapLegacySeverity(defectsState.selectedSeverity)
 
       function applyDefectDeltaToInput(baseInput: any, delta: any) {

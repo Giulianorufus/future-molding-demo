@@ -36,8 +36,19 @@ async function completeWizard(page: Page) {
   await expect(page.getByText('18,874567 cm³ iniettati', { exact: true })).toBeVisible();
 }
 
-test('Wizard: STEP reale -> stampo, pressa, materiale -> parametri', async ({ page }) => {
+test('STEP reale, ricetta iniziale e prova correttiva da Difetti', async ({ page }) => {
   await completeWizard(page);
+  await page.getByRole('link', { name: 'Difetti', exact: true }).click();
+  await page.getByRole('button', { name: 'Bava / sormonto', exact: true }).click();
+  const diagnosis = page.getByRole('region', { name: 'Diagnosi guidata' });
+  await diagnosis.getByRole('combobox', { name: 'Dove compare la bava?' }).selectOption('distributed');
+  await diagnosis.getByRole('combobox', { name: 'Quando compare la bava?' }).selectOption('hold');
+  await diagnosis.getByRole('combobox', { name: 'Sono stati riscontrati danni o sporco sulle battute?' }).selectOption('no');
+  await diagnosis.getByLabel('Pressione attuale (bar)').fill('600');
+  await diagnosis.getByLabel('Minimo validato (bar)').fill('580');
+  await diagnosis.getByLabel('Massimo validato (bar)').fill('650');
+  await expect(diagnosis.getByText('600 → 580 bar', { exact: false })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ricetta iniziale' })).toBeVisible();
 });
 
 test.describe('Wizard su viewport iPhone', () => {

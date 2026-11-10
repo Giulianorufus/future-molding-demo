@@ -27,3 +27,23 @@ test('observations reorder checks and reset clears answers without modifying pro
   expect(useParametriStore.getState().result).toBe(recipe)
   expect(useDefectsStore.getState().selectedDefectId).toBe(defect)
 })
+
+test('a confirmed zone can yield a bounded trial, and changing the zone removes it', async () => {
+  const baseline = { pressureBar: 800, injectionFlowCm3s: 30 }
+  render(<GuidedDefectDiagnosis {...props} defectId="flash" pressId="arburg-320-c-reference" materialId="pc"
+    result={baseline as import('@/core/calcEngine').CalculationResult} />)
+  const select = (name: string, value: string) => fireEvent.change(screen.getByRole('combobox', { name }), { target: { value } })
+  select('Quando compare la bava?', 'hold')
+  select('Dove compare la bava?', 'distributed')
+  select('Sono stati riscontrati danni o sporco sulle battute?', 'no')
+  expect(screen.getByText(/Pressione di prova da determinare/)).toBeVisible()
+  for (const [label, value] of [['Pressione attuale (bar)', '600'], ['Minimo validato (bar)', '580'], ['Massimo validato (bar)', '650']]) {
+    fireEvent.change(screen.getByLabelText(label), { target: { value } })
+  }
+  expect(screen.getByText('600 → 580 bar')).toBeVisible()
+  expect(baseline).toEqual({ pressureBar: 800, injectionFlowCm3s: 30 })
+  select('Dove compare la bava?', 'local')
+  expect(screen.queryByRole('region', { name: 'Ricetta di prova' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Ricomincia le domande' }))
+  expect(await screen.findByText('0 di 3 risposte · 0 osservazioni verificate')).toBeVisible()
+})
