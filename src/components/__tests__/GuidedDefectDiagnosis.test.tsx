@@ -44,6 +44,11 @@ test('a confirmed zone can yield a bounded trial, and changing the zone removes 
   expect(baseline).toEqual({ pressureBar: 800, injectionFlowCm3s: 30 })
   select('Dove compare la bava?', 'local')
   expect(screen.queryByRole('region', { name: 'Ricetta di prova' })).toBeNull()
+  expect(screen.getByText(/Controlla le battute nel punto/)).toBeVisible()
+  select('Dove compare la bava?', 'distributed')
+  expect(screen.getByLabelText('Pressione attuale (bar)')).toHaveValue(null)
+  expect(screen.queryByText('600 → 580 bar')).toBeNull()
+
   fireEvent.click(screen.getByRole('button', { name: 'Ricomincia le domande' }))
   expect(await screen.findByText('0 di 3 risposte · 0 osservazioni verificate')).toBeVisible()
 })

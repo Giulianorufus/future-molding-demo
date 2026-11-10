@@ -1,6 +1,6 @@
 import { readRecipeProcessValues } from '@/engine/recipeProcessValues'
 import { useEffect, useState } from 'react'
-import { useDrawingStore } from '@/stores/drawingStore'
+import { getRecipeDrawingKey, useDrawingStore } from '@/stores/drawingStore'
 import { useParametriStore } from '@/stores/parametriStore'
 import { useDefectsStore } from '@/stores/defectsStore'
 import { usePressStore } from '@/stores/pressStore'
@@ -18,20 +18,25 @@ export default function DifettiPage() {
   const selectedSeverity = useDefectsStore(s => s.selectedSeverity)
   const gates = useDrawingStore(s => s.gates)
   const viewerUrl = useDrawingStore(s => s.viewerUrl)
+  const drawingKey = useDrawingStore(getRecipeDrawingKey)
   const volumeCm3 = useDrawingStore(s => s.volumeCm3)
-  const conversionId = useDrawingStore(s => s.conversionId)
   const conversionStatus = useDrawingStore(s => s.conversionStatus)
   const conversionMessage = useDrawingStore(s => s.conversionMessage)
   const pressId = usePressStore(s => s.selectedPressId)
   const screwDiameter = usePressStore(s => s.selectedScrewDiameter_mm)
   const materialId = useMaterialStore(s => s.selectedMaterialId)
-  const result = useParametriStore(s => s.result)
-  const coolingTimeSec = result ? readRecipeProcessValues(result).coolingTimeSec : null
+  const calculatedResult = useParametriStore(s => s.result)
+  const lastInput = useParametriStore(s => s.lastInput)
   const loading = useParametriStore(s => s.loading)
   const error = useParametriStore(s => s.error)
+  const result = !loading && !error && conversionStatus !== 'converting' && conversionStatus !== 'error' &&
+    volumeCm3 && pressId && materialId && lastInput?.drawingKey === drawingKey &&
+    lastInput.press?.id === pressId && lastInput.press.screwDiameterMm === (screwDiameter ?? undefined) &&
+    lastInput.material?.id === materialId ? calculatedResult : null
+  const coolingTimeSec = result ? readRecipeProcessValues(result).coolingTimeSec : null
   const guide = getDefectGuide(selectedDefectId)
   const visibleGuides = searchDefectGuides(query, category)
-  const observationKey = JSON.stringify([selectedDefectId, viewerUrl, conversionId, pressId, screwDiameter, materialId])
+  const observationKey = JSON.stringify([selectedDefectId, drawingKey, pressId, screwDiameter, materialId])
   const [point, setPoint] = useState<{ key: string; x: number; y: number; z: number; local: { x: number; y: number; z: number }; span: number } | null>(null)
   const selectedPin = point?.key === observationKey ? point : null
   const nearbyGate = selectedPin && guide?.id === 'burn-mark'
@@ -105,8 +110,8 @@ export default function DifettiPage() {
           </dl> : !loading && <p className="text-slate-500">Completa il Wizard per ottenere la ricetta iniziale.</p>}
         </section>
       </div>
-      {selectedDefectId ? <GuidedDefectDiagnosis key={observationKey} gateHintKey={pointHint} defectId={selectedDefectId} severity={selectedSeverity} result={result} volumeCm3={volumeCm3} pressId={pressId} materialId={materialId} /> : <p className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm">Scegli il difetto: ti guiderò attraverso tre domande per ordinare le cause possibili e le azioni.</p>}
-      {guide && <DefectOutcomeLog key={`outcome:${guide.id}:${viewerUrl}:${pressId}:${materialId}`} defectId={guide.id} pressId={pressId} materialId={materialId} result={!loading && !error ? result : null} />}
+      {selectedDefectId ? <GuidedDefectDiagnosis key={JSON.stringify([observationKey, selectedPin?.local ?? null])} gateHintKey={pointHint} defectId={selectedDefectId} severity={selectedSeverity} result={result} volumeCm3={volumeCm3} pressId={pressId} materialId={materialId} /> : <p className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm">Scegli il difetto: ti guiderò attraverso tre domande per ordinare le cause possibili e le azioni.</p>}
+      {guide && <DefectOutcomeLog key={observationKey} defectId={guide.id} pressId={pressId} materialId={materialId} result={!loading && !error ? result : null} />}
     </div>
   </div>
 }

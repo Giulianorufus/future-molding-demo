@@ -11,6 +11,7 @@ import type { CadAnalysisMeta } from '../types/cadAnalysisMeta'
 
 export type CalculationInput = {
   volumeCm3: number
+  drawingKey?: string
   shotVolumeCm3?: number
   projectedAreaCm2?: number
   cavityCount?: number

@@ -10,6 +10,23 @@ export function getDefectTrialKind(defectId: string, observations: DiagnosticAns
   return null
 }
 
+export function getNextDefectTrialCheck(defectId: string, observations: DiagnosticAnswers) {
+  if (defectId === 'flash') {
+    if (observations.location === 'local') return 'Controlla le battute nel punto in cui compare la bava.'
+    if (observations.location !== 'distributed') return 'Verifica se la bava è locale o distribuita.'
+    if (observations.mold !== 'no') return 'Controlla e conferma lo stato delle battute.'
+    if (observations.phase === 'fill') return 'Verifica la fase di riempimento: la prova di mantenimento richiede una bava che compaia solo dopo la commutazione.'
+    if (observations.phase !== 'hold') return 'Verifica se la bava compare già nel riempimento o soltanto in mantenimento.'
+  }
+  if (defectId === 'sink-mark') {
+    if (observations.location !== 'yes') return 'Verifica se il segno coincide con una nervatura o una zona spessa.'
+    if (observations.cooling !== 'no') return 'Verifica il raffreddamento nella zona dell’affossamento.'
+    if (observations.holdingResponse === 'no') return 'Verifica la sigillatura dell’attacco: il peso risulta già stabile.'
+    if (observations.holdingResponse !== 'yes') return 'Verifica se il peso aumenta prolungando il mantenimento entro la finestra validata.'
+  }
+  return null
+}
+
 export function proposeDefectRecipeTrial(
   defectId: string,
   observations: DiagnosticAnswers,

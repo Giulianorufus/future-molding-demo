@@ -58,6 +58,12 @@ test('STEP reale, ricetta iniziale e prova correttiva da Difetti', async ({ page
   await diagnosis.getByLabel('Minimo validato (s)').fill('2.5');
   await diagnosis.getByLabel('Massimo validato (s)').fill('3.15');
   await expect(diagnosis.getByText('3 → 3.15 s', { exact: false })).toBeVisible();
+  await diagnosis.getByRole('combobox', { name: /il peso del pezzo aumenta ancora/ }).selectOption('no');
+  await expect(diagnosis.getByText(/il peso risulta già stabile/)).toBeVisible();
+  await diagnosis.getByRole('combobox', { name: /il peso del pezzo aumenta ancora/ }).selectOption('yes');
+  await expect(diagnosis.getByLabel('Tempo attuale (s)')).toHaveValue('');
+  await expect(diagnosis.getByText('3 → 3.15 s', { exact: false })).toHaveCount(0);
+
 
 });
 

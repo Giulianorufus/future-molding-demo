@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CalculationResult } from '@/core/calcEngine'
 import { inferKnowledgeRecommendations } from '@/engine/knowledge/knowledgeEngine'
 import { getDefectGuide, type DiagnosticAnswers } from '@/engine/knowledge/guidedDiagnosis'
-import { getDefectTrialKind, proposeDefectRecipeTrial } from '@/engine/knowledge/defectRecipeTrial'
+import { getDefectTrialKind, getNextDefectTrialCheck, proposeDefectRecipeTrial } from '@/engine/knowledge/defectRecipeTrial'
 import { usePressStore } from '@/stores/pressStore'
 import type { KnowledgeResult } from '@/engine/knowledge/types'
+
+const emptyWindow = { current: '', minimum: '', maximum: '' }
 
 type Props = {
   gateHintKey?: string
@@ -26,9 +28,10 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
   const [evaluation, setEvaluation] = useState<KnowledgeResult | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-  const [pressure, setPressure] = useState({ current: '', minimum: '', maximum: '' })
+  const [pressure, setPressure] = useState(emptyWindow)
   const press = usePressStore(state => pressId ? state.catalog[pressId] : undefined)
   const kind = guide ? getDefectTrialKind(guide.id, observations) : null
+  const nextCheck = guide && !kind ? getNextDefectTrialCheck(guide.id, observations) : null
   const isTime = kind === 'time'
   const unit = isTime ? 's' : 'bar'
   const parameter = isTime ? 'Tempo di mantenimento' : 'Pressione di mantenimento'
@@ -72,7 +75,7 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
         <h2 className="text-xl font-semibold">Diagnosi guidata · {guide.label}</h2>
         <p className="mt-1 text-sm text-slate-600">Rispondi sui pezzi e sui dati osservati in pressa. Prova una modifica alla volta e confronta il risultato.</p>
       </div>
-      <button className="rounded-lg border border-blue-200 px-3 py-2 text-sm" onClick={() => { setAnswers({}); setConfirmedHint(undefined); setPressure({ current: '', minimum: '', maximum: '' }) }}>Ricomincia le domande</button>
+      <button className="rounded-lg border border-blue-200 px-3 py-2 text-sm" onClick={() => { setAnswers({}); setConfirmedHint(undefined); setPressure(emptyWindow) }}>Ricomincia le domande</button>
     </div>
     {!result && <p className="rounded-lg bg-blue-50 p-3 text-sm">Puoi iniziare dalle osservazioni. Completa il Wizard per affiancare i parametri calcolati alle verifiche.</p>}
     {gateHintKey && !observations.location && <p className="rounded-lg bg-blue-50 p-3 text-sm">
@@ -86,6 +89,7 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
         <span className="font-medium">{index + 1}. {question.label}</span>
         <select aria-label={question.label} className="mt-auto min-w-0 w-full rounded border border-slate-300 bg-white p-2 text-slate-900" value={observations[question.id] ?? ''} onChange={event => {
           const value = event.target.value
+          setPressure(emptyWindow)
           if (question.id === 'location') setConfirmedHint(undefined)
           setAnswers(previous => ({ ...previous, [question.id]: value }))
         }}>
@@ -94,6 +98,9 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
         </select>
       </label>)}
     </div>
+    {nextCheck && <p className="rounded-lg bg-amber-50 p-3 text-sm">
+      <strong>{guide.id === 'flash' ? 'Pressione di mantenimento' : 'Tempo di mantenimento'} da determinare.</strong> {nextCheck}
+    </p>}
     {kind && result && pressId && materialId && <section aria-label="Ricetta di prova" className="space-y-2 rounded border border-blue-200 p-3 text-sm">
       <h3 className="font-semibold">Ricetta di prova · {parameter.toLowerCase()}</h3>
       <p>Per il livello da provare, inserisci il valore usato sulla pressa e la finestra validata per questa pressa, stampo e materiale, nelle unità indicate.</p>
