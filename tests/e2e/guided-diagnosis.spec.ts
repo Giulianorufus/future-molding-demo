@@ -36,6 +36,11 @@ test('la scelta del difetto segue lo store; le risposte non modificano la ricett
   await serveFixture(page, 'tests/fixtures/Frutto (1).glb')
   await page.goto('/#/wizard')
   await exposeStores(page)
+  await page.evaluate(async () => {
+    const { materialCatalog } = await import('/src/data/materialCatalog.ts')
+    const store = (window as any).__FM_STORES__.material
+    store.getState().setCatalog(Object.fromEntries(materialCatalog.map(material => [material.id, material])))
+  })
   await injectStores(page, { pressId: 'arburg-370-u', materialId: 'pp' })
   await waitForParametriResult(page)
   await page.goto('/#/difetti')
