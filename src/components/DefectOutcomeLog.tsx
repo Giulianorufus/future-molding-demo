@@ -44,7 +44,14 @@ interface Trial {
   reason: string
 }
 
+export interface DefectTrialEvidence {
+  fileName?: string | null
+  point?: { x: number; y: number; z: number } | null
+  observations: { question: string; answer: string }[]
+}
+
 interface Props {
+  evidence?: DefectTrialEvidence
   trial?: Trial | null
   defectId: string
   pressId?: string | null
@@ -56,7 +63,7 @@ function readOutcomes() {
   return outcomeLogSchema.parse(JSON.parse(localStorage.getItem(storageKey) ?? '[]'))
 }
 
-export default function DefectOutcomeLog({ defectId, pressId, materialId, result, trial }: Props) {
+export default function DefectOutcomeLog({ defectId, pressId, materialId, result, trial, evidence }: Props) {
   const [records, setRecords] = useState(() => {
     try {
       return readOutcomes()
@@ -99,6 +106,7 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
           pressId,
           materialId,
           recipeSnapshot,
+          ...(evidence && (evidence.fileName || evidence.point || evidence.observations.length) ? { evidence } : {}),
           createdAtISO: new Date().toISOString(),
         },
       }
@@ -157,6 +165,15 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
         <ul aria-label="Esiti registrati per questo difetto" className="mt-4 max-h-72 space-y-3 overflow-y-auto text-sm">
           {matchingRecords.map(record => {
             const recipe = summarizeRecipe(record.metadata?.recipeSnapshot)
+            const savedEvidence = record.metadata?.evidence as DefectTrialEvidence | undefined
+            const observations = Array.isArray(savedEvidence?.observations)
+              ? savedEvidence.observations.filter(item => typeof item?.question === 'string' && typeof item?.answer === 'string')
+              : []
+            const fileName = typeof savedEvidence?.fileName === 'string' ? savedEvidence.fileName : null
+            const point = savedEvidence?.point
+            const coordinates = point && [point.x, point.y, point.z].every(Number.isFinite)
+              ? [point.x, point.y, point.z].map(value => recipeNumber.format(value)).join(' / ')
+              : null
             return (
               <li key={record.id} className="border-t border-slate-200 pt-2">
                 <strong>{labels[record.status]}</strong> · {String(record.metadata?.action ?? '')}
@@ -165,6 +182,14 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
                 <p className="text-xs text-slate-600">
                   {[typeof record.metadata?.createdAtISO === 'string' ? new Date(record.metadata.createdAtISO).toLocaleString('it-IT') : null, record.metadata?.pressId, record.metadata?.materialId].filter(Boolean).join(' · ')}
                 </p>
+                {(fileName || observations.length > 0 || coordinates) && <details className="mt-1 text-xs text-slate-600">
+                  <summary>Osservazioni al momento della prova</summary>
+                  {fileName && <p>Disegno · {fileName}</p>}
+                  {coordinates && <p>Punto sul modello (X / Y / Z) · {coordinates}</p>}
+                  <ul>{observations.map(({ question, answer }, index) =>
+                    <li key={index}>{question} · {answer}</li>
+                  )}</ul>
+                </details>}
                 {recipe.length > 0 && <p className="mt-1 text-xs text-slate-600"><strong>Ricetta mostrata al salvataggio</strong> · {recipe.join(' · ')}</p>}
               </li>
             )

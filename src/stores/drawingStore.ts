@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { InjectionGate } from '@/types/injectionGate'
 
 export type DrawingState = {
+  sourceFileName: string | null
   glbUrl: string | null
   viewerUrl: string | null
   volumeCm3: number | null
@@ -43,13 +44,14 @@ export type DrawingState = {
 
 export function getRecipeDrawingKey(drawing: DrawingState): string {
   return JSON.stringify([
-    drawing.viewerUrl, drawing.conversionId, drawing.volumeCm3, drawing.surfaceCm2,
+    drawing.viewerUrl, drawing.conversionId, drawing.sourceFileName, drawing.volumeCm3, drawing.surfaceCm2,
     drawing.cavityCount, drawing.cavityCountConfirmed, drawing.feedSystem,
     drawing.runnerVolumeCm3, drawing.runnerProjectedAreaCm2,
   ])
 }
 
 export const useDrawingStore = create<DrawingState>((set) => ({
+  sourceFileName: null,
   glbUrl: null,
   viewerUrl: null,
   volumeCm3: null,
@@ -153,6 +155,7 @@ export const useDrawingStore = create<DrawingState>((set) => ({
   setViewerUrl: (url: string | null) => set((s) => ({ ...s, viewerUrl: url })),
   reset() {
     set({
+      sourceFileName: null,
       glbUrl: null,
       viewerUrl: null,
       volumeCm3: null,

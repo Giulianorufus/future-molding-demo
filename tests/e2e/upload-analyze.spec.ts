@@ -53,6 +53,13 @@ test('STEP reale, ricetta iniziale e prova correttiva da Difetti', async ({ page
     if (await removePoint.isVisible()) break;
   }
   await expect(removePoint).toBeVisible();
+  const burnLog = page.getByRole('region', { name: 'Registro delle prove' });
+  await burnLog.getByLabel('Modifica provata').fill('Controllo locale');
+  await burnLog.getByLabel('Esito in pressa').selectOption('FAILED');
+  await burnLog.getByRole('button', { name: 'Salva esito' }).click();
+  await burnLog.getByText('Osservazioni al momento della prova', { exact: true }).click();
+  await expect(burnLog.getByText(/Punto sul modello/)).toBeVisible();
+
   await page.getByRole('button', { name: 'Bava / sormonto', exact: true }).click();
   await expect(removePoint).toHaveCount(0);
   const diagnosis = page.getByRole('region', { name: 'Diagnosi guidata' });
@@ -80,6 +87,10 @@ test('STEP reale, ricetta iniziale e prova correttiva da Difetti', async ({ page
   await expect(log.getByText(/Migliorato.*Tempo di mantenimento 3 → 3,15 s/)).toBeVisible();
   const savedTrial = await page.evaluate(() => JSON.parse(localStorage.getItem('fm:defect-outcomes') ?? '[]')[0]?.metadata?.appliedTrial);
   expect(savedTrial).toMatchObject({ before: 3, after: 3.15, unit: 's' });
+  await log.getByText('Osservazioni al momento della prova', { exact: true }).click();
+  await expect(log.getByText('Disegno · Frutto (1).stp')).toBeVisible();
+  await expect(log.getByText(/in corrispondenza di nervature.*Sì/)).toBeVisible();
+
 
   await diagnosis.getByRole('combobox', { name: /il peso del pezzo aumenta ancora/ }).selectOption('no');
   await expect(diagnosis.getByText(/il peso risulta già stabile/)).toBeVisible();

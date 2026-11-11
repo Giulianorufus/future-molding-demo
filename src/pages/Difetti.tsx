@@ -16,6 +16,7 @@ export default function DifettiPage() {
   const selectedDefectId = useDefectsStore(s => s.selectedDefectId)
   const selectedSeverity = useDefectsStore(s => s.selectedSeverity)
   const gates = useDrawingStore(s => s.gates)
+  const sourceFileName = useDrawingStore(s => s.sourceFileName)
   const viewerUrl = useDrawingStore(s => s.viewerUrl)
   const drawingKey = useDrawingStore(getRecipeDrawingKey)
   const volumeCm3 = useDrawingStore(s => s.volumeCm3)
@@ -109,7 +110,7 @@ export default function DifettiPage() {
           </dl> : !loading && <p className="text-slate-500">Completa il Wizard per ottenere la ricetta iniziale.</p>}
         </section>
       </div>
-      {selectedDefectId ? <GuidedDefectDiagnosis key={JSON.stringify([observationKey, selectedPin?.local ?? null])} gateHintKey={pointHint} defectId={selectedDefectId} severity={selectedSeverity} result={result} volumeCm3={volumeCm3} pressId={pressId} materialId={materialId} /> : <p className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm">Scegli il difetto: ti guiderò attraverso tre domande per ordinare le cause possibili e le azioni.</p>}
+      {selectedDefectId ? <GuidedDefectDiagnosis key={JSON.stringify([observationKey, selectedPin?.local ?? null])} gateHintKey={pointHint} defectPoint={selectedPin?.local} drawingFileName={sourceFileName} defectId={selectedDefectId} severity={selectedSeverity} result={result} volumeCm3={volumeCm3} pressId={pressId} materialId={materialId} /> : <p className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm">Scegli il difetto: ti guiderò attraverso tre domande per ordinare le cause possibili e le azioni.</p>}
     </div>
   </div>
 }

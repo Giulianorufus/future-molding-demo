@@ -3,7 +3,7 @@ import type { CalculationResult } from '@/core/calcEngine'
 import { inferKnowledgeRecommendations } from '@/engine/knowledge/knowledgeEngine'
 import { getDefectGuide, type DiagnosticAnswers } from '@/engine/knowledge/guidedDiagnosis'
 import { getDefectTrialKind, getNextDefectTrialCheck, proposeDefectRecipeTrial } from '@/engine/knowledge/defectRecipeTrial'
-import DefectOutcomeLog from './DefectOutcomeLog'
+import DefectOutcomeLog, { type DefectTrialEvidence } from './DefectOutcomeLog'
 import { usePressStore } from '@/stores/pressStore'
 import type { KnowledgeResult } from '@/engine/knowledge/types'
 
@@ -11,6 +11,8 @@ const emptyWindow = { current: '', minimum: '', maximum: '' }
 
 type Props = {
   gateHintKey?: string
+  drawingFileName?: string | null
+  defectPoint?: DefectTrialEvidence['point']
   defectId: string
   severity: string
   result: CalculationResult | null
@@ -19,7 +21,7 @@ type Props = {
   materialId: string | null
 }
 
-export default function GuidedDefectDiagnosis({ defectId, severity, result, volumeCm3, pressId, materialId, gateHintKey }: Props) {
+export default function GuidedDefectDiagnosis({ defectId, severity, result, volumeCm3, pressId, materialId, gateHintKey, defectPoint, drawingFileName }: Props) {
   const guide = getDefectGuide(defectId)
   const [answers, setAnswers] = useState<DiagnosticAnswers>({})
   const [confirmedHint, setConfirmedHint] = useState<string>()
@@ -69,6 +71,11 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
   }, [defectId, severity, observations, result, volumeCm3, pressId, materialId])
 
   if (!guide) return <section aria-label="Diagnosi guidata" className="rounded-xl border p-4">Diagnosi guidata non disponibile per questo difetto.</section>
+  const recordedObservations = guide.questions.flatMap(question => {
+    const value = observations[question.id]
+    const answer = question.options.find(option => option.value === value && value !== 'unknown')
+    return answer ? [{ question: question.label, answer: answer.label }] : []
+  })
   const report = evaluation?.guidedDiagnosis
   return <><section aria-label="Diagnosi guidata" className="space-y-5 rounded-xl border border-blue-200 bg-white p-4 text-blue-950">
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -148,6 +155,7 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
     </details>
   </section>
     <DefectOutcomeLog defectId={guide.id} pressId={pressId} materialId={materialId} result={result}
+      evidence={{ fileName: drawingFileName, point: defectPoint, observations: recordedObservations }}
       trial={trial ? { ...trial, parameter, unit } : null} />
   </>
 }
