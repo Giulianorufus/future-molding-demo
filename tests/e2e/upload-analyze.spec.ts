@@ -36,8 +36,67 @@ async function completeWizard(page: Page) {
   await expect(page.getByText('18,874567 cm³ iniettati', { exact: true })).toBeVisible();
 }
 
-test('Wizard: STEP reale -> stampo, pressa, materiale -> parametri', async ({ page }) => {
+test('STEP reale, ricetta iniziale e prova correttiva da Difetti', async ({ page }) => {
   await completeWizard(page);
+  await page.getByRole('link', { name: 'Difetti', exact: true }).click();
+  await page.getByRole('button', { name: 'Bruciature', exact: true }).click();
+  await expect(page.getByText('Ready', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Segna il punto sul pezzo', exact: true }).click();
+  const modelCanvas = page.locator('canvas');
+  await expect(modelCanvas).toHaveCount(1);
+  const bounds = await modelCanvas.boundingBox();
+  if (!bounds) throw new Error('Modello 3D privo di area cliccabile');
+  const removePoint = page.getByRole('button', { name: 'Rimuovi punto', exact: true });
+  // Sample around the view target, which can fall in a hole in the STEP part.
+  for (const [x, y] of [[0.5, 0.5], [0.45, 0.5], [0.55, 0.5], [0.5, 0.4], [0.5, 0.6]]) {
+    await modelCanvas.click({ position: { x: bounds.width * x, y: bounds.height * y } });
+    if (await removePoint.isVisible()) break;
+  }
+  await expect(removePoint).toBeVisible();
+  const burnLog = page.getByRole('region', { name: 'Registro delle prove' });
+  await burnLog.getByLabel('Modifica provata').fill('Controllo locale');
+  await burnLog.getByLabel('Esito in pressa').selectOption('FAILED');
+  await burnLog.getByRole('button', { name: 'Salva esito' }).click();
+  await burnLog.getByText('Osservazioni al momento della prova', { exact: true }).click();
+  await expect(burnLog.getByText(/Punto sul modello/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Bava / sormonto', exact: true }).click();
+  await expect(removePoint).toHaveCount(0);
+  const diagnosis = page.getByRole('region', { name: 'Diagnosi guidata' });
+  await diagnosis.getByRole('combobox', { name: 'Dove compare la bava?' }).selectOption('distributed');
+  await diagnosis.getByRole('combobox', { name: 'Quando compare la bava?' }).selectOption('hold');
+  await diagnosis.getByRole('combobox', { name: 'Sono stati riscontrati danni o sporco sulle battute?' }).selectOption('no');
+  await diagnosis.getByLabel('Pressione attuale (bar)').fill('600');
+  await diagnosis.getByLabel('Minimo validato (bar)').fill('580');
+  await diagnosis.getByLabel('Massimo validato (bar)').fill('650');
+  await expect(diagnosis.getByText('600 → 580 bar', { exact: false })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ricetta iniziale' })).toBeVisible();
+  await page.getByRole('button', { name: 'Affossamenti', exact: true }).click();
+  await expect(diagnosis.getByText('600 → 580 bar', { exact: false })).toHaveCount(0);
+  await diagnosis.getByRole('combobox', { name: /in corrispondenza di nervature/ }).selectOption('yes');
+  await diagnosis.getByRole('combobox', { name: /il peso del pezzo aumenta ancora/ }).selectOption('yes');
+  await diagnosis.getByRole('combobox', { name: /raffreddata male/ }).selectOption('no');
+  await diagnosis.getByLabel('Tempo attuale (s)').fill('3');
+  await diagnosis.getByLabel('Minimo validato (s)').fill('2.5');
+  await diagnosis.getByLabel('Massimo validato (s)').fill('3.15');
+  await expect(diagnosis.getByText('3 → 3.15 s', { exact: false })).toBeVisible();
+  const log = page.getByRole('region', { name: 'Registro delle prove' });
+  await log.getByRole('checkbox', { name: /Ho provato la modifica proposta/ }).check();
+  await log.getByLabel('Esito in pressa').selectOption('PARTIAL_SUCCESS');
+  await log.getByRole('button', { name: 'Salva esito' }).click();
+  await expect(log.getByText(/Migliorato.*Tempo di mantenimento 3 → 3,15 s/)).toBeVisible();
+  const savedTrial = await page.evaluate(() => JSON.parse(localStorage.getItem('fm:defect-outcomes') ?? '[]')[0]?.metadata?.appliedTrial);
+  expect(savedTrial).toMatchObject({ before: 3, after: 3.15, unit: 's' });
+  await log.getByText('Osservazioni al momento della prova', { exact: true }).click();
+  await expect(log.getByText('Disegno · Frutto (1).stp')).toBeVisible();
+  await expect(log.getByText(/in corrispondenza di nervature.*Sì/)).toBeVisible();
+
+
+  await diagnosis.getByRole('combobox', { name: /il peso del pezzo aumenta ancora/ }).selectOption('no');
+  await expect(diagnosis.getByText(/il peso risulta già stabile/)).toBeVisible();
+  await diagnosis.getByRole('combobox', { name: /il peso del pezzo aumenta ancora/ }).selectOption('yes');
+  await expect(diagnosis.getByLabel('Tempo attuale (s)')).toHaveValue('');
+  await expect(diagnosis.getByText('3 → 3.15 s', { exact: false })).toHaveCount(0);
 });
 
 test.describe('Wizard su viewport iPhone', () => {

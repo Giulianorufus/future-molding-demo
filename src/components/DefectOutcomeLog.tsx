@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { knowledgeOutcomeSchema, type KnowledgeOutcomeSchema } from '@/engine/knowledge/knowledgeOutcome.schema'
 import type { CalculationResult } from '@/core/calcEngine'
 import { buildOperatorRecipeView } from './operatorRecipe/buildOperatorRecipeView'
@@ -36,7 +36,23 @@ const labels = {
   NOT_TESTED: 'Non provato',
 } satisfies Record<KnowledgeOutcomeSchema['status'], string>
 
+interface Trial {
+  parameter: string
+  unit: string
+  before: number
+  after: number
+  reason: string
+}
+
+export interface DefectTrialEvidence {
+  fileName?: string | null
+  point?: { x: number; y: number; z: number } | null
+  observations: { question: string; answer: string }[]
+}
+
 interface Props {
+  evidence?: DefectTrialEvidence
+  trial?: Trial | null
   defectId: string
   pressId?: string | null
   materialId?: string | null
@@ -47,7 +63,7 @@ function readOutcomes() {
   return outcomeLogSchema.parse(JSON.parse(localStorage.getItem(storageKey) ?? '[]'))
 }
 
-export default function DefectOutcomeLog({ defectId, pressId, materialId, result }: Props) {
+export default function DefectOutcomeLog({ defectId, pressId, materialId, result, trial, evidence }: Props) {
   const [records, setRecords] = useState(() => {
     try {
       return readOutcomes()
@@ -55,6 +71,10 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
       return null
     }
   })
+  const [testedTrial, setTestedTrial] = useState('')
+  const trialKey = trial ? JSON.stringify(trial) : ''
+  const trialApplied = Boolean(trialKey && testedTrial === trialKey)
+  useEffect(() => { setTestedTrial('') }, [trialKey])
   const [action, setAction] = useState('')
   const [status, setStatus] = useState<KnowledgeOutcomeSchema['status'] | ''>('')
   const [notes, setNotes] = useState('')
@@ -64,7 +84,10 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
 
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!action.trim() || !status) return
+    const change = action.trim() || (trialApplied && trial
+      ? `${trial.parameter} ${recipeNumber.format(trial.before)} → ${recipeNumber.format(trial.after)} ${trial.unit}`
+      : '')
+    if (!change || !status) return
 
     try {
       const recipe = result ? buildOperatorRecipeView(result) : null
@@ -76,12 +99,14 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
         status,
         notes: notes.trim() || null,
         metadata: {
-          action: action.trim(),
+          action: change,
+          ...(trialApplied && trial ? { appliedTrial: trial } : {}),
           restored,
           defectId,
           pressId,
           materialId,
           recipeSnapshot,
+          ...(evidence && (evidence.fileName || evidence.point || evidence.observations.length) ? { evidence } : {}),
           createdAtISO: new Date().toISOString(),
         },
       }
@@ -89,6 +114,7 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
       localStorage.setItem(storageKey, JSON.stringify(next))
       setRecords(next)
       setAction('')
+      setTestedTrial('')
       setNotes('')
       setRestored(false)
       setStatus('')
@@ -107,8 +133,12 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
       <h2 id="defect-outcome-heading" className="text-lg font-semibold">Registro delle prove</h2>
       <p className="mt-1 text-sm text-slate-600">Annota cosa hai provato in pressa. Il registro è salvato in questo browser. Se il calcolo è disponibile, salva anche i parametri mostrati dall’app in questo momento.</p>
       <form onSubmit={save} className="mt-3 grid gap-3 text-sm">
-        <label className="grid gap-1">Modifica provata
-          <input required maxLength={240} className="rounded border border-slate-300 p-2" value={action} onChange={event => setAction(event.target.value)} />
+        {trial && <label className="flex items-center gap-2">
+          <input type="checkbox" checked={trialApplied} onChange={event => setTestedTrial(event.target.checked ? trialKey : '')} />
+          Ho provato la modifica proposta ({trial.parameter.toLowerCase()} {recipeNumber.format(trial.before)} → {recipeNumber.format(trial.after)} {trial.unit})
+        </label>}
+        <label className="grid gap-1">{trialApplied ? 'Dettagli sulla modifica provata' : 'Modifica provata'}
+          <input required={!trialApplied} maxLength={240} className="rounded border border-slate-300 p-2" value={action} onChange={event => setAction(event.target.value)} />
         </label>
         <label className="grid gap-1">Esito in pressa
           <select required className="rounded border border-slate-300 p-2" value={status} onChange={event => setStatus(event.target.value as KnowledgeOutcomeSchema['status'])}>
@@ -125,7 +155,7 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
           <input type="checkbox" checked={restored} onChange={event => setRestored(event.target.checked)} />
           Ho ripristinato la ricetta precedente in pressa
         </label>
-        <button type="submit" disabled={!action.trim() || !status} className="justify-self-start rounded bg-blue-700 px-3 py-2 font-semibold text-white disabled:opacity-50">
+        <button type="submit" disabled={(!action.trim() && !trialApplied) || !status} className="justify-self-start rounded bg-blue-700 px-3 py-2 font-semibold text-white disabled:opacity-50">
           Salva esito
         </button>
       </form>
@@ -135,6 +165,15 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
         <ul aria-label="Esiti registrati per questo difetto" className="mt-4 max-h-72 space-y-3 overflow-y-auto text-sm">
           {matchingRecords.map(record => {
             const recipe = summarizeRecipe(record.metadata?.recipeSnapshot)
+            const savedEvidence = record.metadata?.evidence as DefectTrialEvidence | undefined
+            const observations = Array.isArray(savedEvidence?.observations)
+              ? savedEvidence.observations.filter(item => typeof item?.question === 'string' && typeof item?.answer === 'string')
+              : []
+            const fileName = typeof savedEvidence?.fileName === 'string' ? savedEvidence.fileName : null
+            const point = savedEvidence?.point
+            const coordinates = point && [point.x, point.y, point.z].every(Number.isFinite)
+              ? [point.x, point.y, point.z].map(value => recipeNumber.format(value)).join(' / ')
+              : null
             return (
               <li key={record.id} className="border-t border-slate-200 pt-2">
                 <strong>{labels[record.status]}</strong> · {String(record.metadata?.action ?? '')}
@@ -143,6 +182,14 @@ export default function DefectOutcomeLog({ defectId, pressId, materialId, result
                 <p className="text-xs text-slate-600">
                   {[typeof record.metadata?.createdAtISO === 'string' ? new Date(record.metadata.createdAtISO).toLocaleString('it-IT') : null, record.metadata?.pressId, record.metadata?.materialId].filter(Boolean).join(' · ')}
                 </p>
+                {(fileName || observations.length > 0 || coordinates) && <details className="mt-1 text-xs text-slate-600">
+                  <summary>Osservazioni al momento della prova</summary>
+                  {fileName && <p>Disegno · {fileName}</p>}
+                  {coordinates && <p>Punto sul modello (X / Y / Z) · {coordinates}</p>}
+                  <ul>{observations.map(({ question, answer }, index) =>
+                    <li key={index}>{question} · {answer}</li>
+                  )}</ul>
+                </details>}
                 {recipe.length > 0 && <p className="mt-1 text-xs text-slate-600"><strong>Ricetta mostrata al salvataggio</strong> · {recipe.join(' · ')}</p>}
               </li>
             )

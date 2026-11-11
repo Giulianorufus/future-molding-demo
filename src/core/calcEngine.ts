@@ -11,6 +11,7 @@ import type { CadAnalysisMeta } from '../types/cadAnalysisMeta'
 
 export type CalculationInput = {
   volumeCm3: number
+  drawingKey?: string
   shotVolumeCm3?: number
   projectedAreaCm2?: number
   cavityCount?: number
@@ -40,7 +41,7 @@ export type CalculationResult = {
   screwDiameterMm: number
   injectionFlowCm3s: number
   switchoverMs: number | null
-  times: { injectionMs: number; coolingMs: number }
+  times: { injectionMs: number; coolingMs: number | null }
   cooling: { suggestedC: number }
   unified?: unknown
 }
@@ -102,7 +103,7 @@ export function calcolaParametri(input: CalculationInput, _context?: CalcContext
     switchoverMs,
     times: {
       injectionMs: Math.max(1, Math.round(fillSec * 1000)),
-      coolingMs: Math.max(1, Math.round(coolingSec * 1000)),
+      coolingMs: coolingSec > 0 ? Math.round(coolingSec * 1000) : null,
     },
     cooling: {
       suggestedC: Math.round(toFinite(out?.temperature?.stampo, material?.recommendedTemperatureC ?? 60)),

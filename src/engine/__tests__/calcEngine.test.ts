@@ -100,7 +100,7 @@ describe('calculateParameters basic scenarios', () => {
     }
   });
 
-  test('keeps PC 320 C cold shot and injected V/P distinct through recipe export', () => {
+  test('exports PC 320 C cold shot, injected V/P and the filling pressure estimate', () => {
     const pieceVolume = 5.2 / 1.2;
     const runnerVolume = 2.8 / 1.2;
     useDrawingStore.setState({
@@ -134,6 +134,17 @@ describe('calculateParameters basic scenarios', () => {
           'Area proiettata dei canali freddi non disponibile: forza di chiusura provvisoria',
         ]),
       });
+      // In this fixture, 10 cm² is a hypothetical area. The pressure estimate
+      // comes from the filling model and must stay distinct from the 2000 bar limit.
+      expect(output.times.coolingMs).toBeNull();
+      expect(exported).toMatchObject({ holdingPressureBar: null, holdingTimeSec: null, coolingTimeSec: null });
+      expect(exported.unified.warnings).toEqual(expect.arrayContaining([
+        expect.stringContaining('Mantenimento da determinare'),
+        expect.stringContaining('Raffreddamento da determinare'),
+      ]));
+      expect(exported.pressureBar).toBeGreaterThan(100);
+      expect(exported.pressureBar).toBeLessThan(2000);
+      expect(exported.unified.profiloPressione.step2).toBe(exported.pressureBar);
       expect(exported.shotVolumeCm3).toBe(6.666667);
       expect(exported.vpSwitchVolumeCm3).toBeGreaterThan(runnerVolume);
       expect(exported.vpSwitchVolumeCm3).toBeLessThan(exported.shotVolumeCm3);

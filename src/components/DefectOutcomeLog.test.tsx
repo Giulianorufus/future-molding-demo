@@ -50,3 +50,26 @@ test('saves a press trial and restores it only in the history for its defect', (
   expect(screen.getByText('Segno ancora visibile')).toBeTruthy()
   expect(screen.getByText('Ricetta precedente ripristinata in pressa.')).toBeTruthy()
 })
+
+test('links only the proposal explicitly tried by the operator', () => {
+  const trial = { parameter: 'Tempo di mantenimento', unit: 's', before: 3, after: 3.15, reason: 'Finestra validata' }
+  const evidence = { fileName: 'Pezzo.stp', point: { x: 1, y: 2, z: 3 }, observations: [{ question: 'Dove?', answer: 'Nervatura' }] }
+  const { rerender } = render(<DefectOutcomeLog defectId="sink-mark" trial={trial} evidence={evidence} />)
+  fireEvent.click(screen.getByRole('checkbox', { name: /Ho provato la modifica proposta/ }))
+  fireEvent.change(screen.getByLabelText('Esito in pressa'), { target: { value: 'PARTIAL_SUCCESS' } })
+
+  const newTrial = { ...trial, after: 3.2 }
+  rerender(<DefectOutcomeLog defectId="sink-mark" trial={newTrial} evidence={evidence} />)
+  expect(screen.getByRole('checkbox', { name: /Ho provato la modifica proposta/ })).not.toBeChecked()
+  expect(screen.getByRole('button', { name: 'Salva esito' })).toBeDisabled()
+
+  fireEvent.click(screen.getByRole('checkbox', { name: /Ho provato la modifica proposta/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Salva esito' }))
+  const [record] = JSON.parse(localStorage.getItem('fm:defect-outcomes') ?? '[]')
+  expect(record.metadata.appliedTrial).toEqual(newTrial)
+  expect(record.metadata.evidence).toEqual(evidence)
+  rerender(<DefectOutcomeLog defectId="sink-mark" evidence={{ observations: [] }} />)
+  expect(screen.getByText('Disegno · Pezzo.stp')).toBeInTheDocument()
+  expect(screen.getByText('Dove? · Nervatura')).toBeInTheDocument()
+  expect(record.metadata.action).toBe('Tempo di mantenimento 3 → 3,2 s')
+})

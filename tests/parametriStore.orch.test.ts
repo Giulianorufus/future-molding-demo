@@ -52,7 +52,7 @@ describe('parametriStore orchestration (integration-like unit test)', () => {
     const param = require('../src/stores/parametriStore')
 
     // set a drawing volume
-    drawing.useDrawingStore.getState().setResult?.({ volumeCm3: 10 })
+    drawing.useDrawingStore.getState().setResult?.({ volumeCm3: 10, surfaceCm2: 12 })
 
     // set a minimal press catalog and select
     const samplePress = {
@@ -85,6 +85,14 @@ describe('parametriStore orchestration (integration-like unit test)', () => {
     const res = param.useParametriStore.getState().result
     expect(res).not.toBeNull()
     expect(res?.tonnellaggioRequired).toBeGreaterThanOrEqual(1)
+    const firstInput = param.useParametriStore.getState().lastInput
+    expect(firstInput.projectedAreaCm2).toBe(12)
+
+    drawing.useDrawingStore.getState().setResult({ cavityCountConfirmed: true })
+    await new Promise((r) => setTimeout(r, 600))
+    const confirmedInput = param.useParametriStore.getState().lastInput
+    expect(confirmedInput.shotVolumeCm3).toBe(firstInput.shotVolumeCm3)
+    expect(confirmedInput.drawingKey).not.toBe(firstInput.drawingKey)
   })
 
   test('passes defect context to calcolaParametri', async () => {

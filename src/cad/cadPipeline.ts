@@ -14,7 +14,7 @@ function generateConversionId(): string {
 export async function startCadPipeline(file: File) {
   const drawing = useDrawingStore.getState();
   try {
-    drawing.setResult({ isLoading: true });
+    drawing.setResult({ isLoading: true, sourceFileName: file.name });
   } catch (e) {
     // ignore
   }

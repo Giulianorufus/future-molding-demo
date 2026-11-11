@@ -83,7 +83,7 @@ export default function OperatorRecipePanel({ result, compatibility }: OperatorR
             <h3 className="fm-panel-title">1. Iniezione</h3>
             <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Metric label="Portata suggerita" value={show(recipe.injectionFlowCm3s, 'cm³/s')} source="Stima del motore con i limiti pressa disponibili" />
-              <Metric label="Pressione teorica · da verificare" value={show(recipe.injectionPressureBar, 'bar')} source="Stima del motore da confrontare con la pressione misurata in pressa" highlight />
+              <Metric label="Pressione empirica · da verificare" value={show(recipe.injectionPressureBar, 'bar')} source="Stima empirica della ricetta. La verifica fisica del percorso è separata." highlight />
             </dl>
             <h4 className="mt-4 text-sm font-semibold">Fasi di riempimento</h4>
             {recipe.injectionPhases.length > 0 ? (
@@ -113,10 +113,10 @@ export default function OperatorRecipePanel({ result, compatibility }: OperatorR
           <div className="space-y-4">
             <section aria-label="Postpressione" className="fm-card pb-4 [&>dl]:mx-4 [&>p]:mx-4">
               <h3 className="fm-panel-title">2. Mantenimento</h3>
-              <p className="mt-1 text-xs text-blue-700">Stima complessiva; fasi non disponibili.</p>
+              <p className="mt-1 text-xs text-blue-700">Pressione e durata complessive.</p>
               <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Metric label="Pressione" value={show(recipe.holdingPressureBar, 'bar')} />
-                <Metric label="Tempo" value={show(recipe.holdingTimeSec, 's')} />
+                <Metric label="Pressione" value={recipe.holdingPressureBar === null ? 'Da determinare' : show(recipe.holdingPressureBar, 'bar')} />
+                <Metric label="Tempo" value={recipe.holdingTimeSec === null ? 'Da determinare' : show(recipe.holdingTimeSec, 's')} />
               </dl>
             </section>
             <section aria-label="Dosaggio e decompressione" className="fm-card pb-4 [&>dl]:mx-4 [&>p]:mx-4">
@@ -132,7 +132,8 @@ export default function OperatorRecipePanel({ result, compatibility }: OperatorR
           <section className="fm-card">
             <h3 className="fm-panel-title">4. Raffreddamento</h3>
             <dl className="p-3">
-              <Metric label="Raffreddamento indicativo" value={show(recipe.coolingTimeMs, 'ms')} source="Stima del motore da verificare sul ciclo reale" />
+              <Metric label="Raffreddamento indicativo" value={recipe.coolingTimeSec === null ? 'Da determinare' : show(recipe.coolingTimeSec, 's')}
+                source={recipe.coolingTimeSec === null ? 'Serve lo spessore utile o una misura sul ciclo' : 'Stima del motore da verificare sul ciclo reale'} />
             </dl>
           </section>
         </div>

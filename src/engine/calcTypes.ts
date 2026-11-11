@@ -107,11 +107,11 @@ export interface CalcOutput {
   switchover_volumePercent?: number | null;
 
   // Pack
-  packPressione: number;
-  packTempo: number;
+  packPressione: number | null;
+  packTempo: number | null;
 
   // Raffreddamento
-  coolingTime: number;
+  coolingTime: number | null;
 
   // Plastificazione (per ora placeholder, da affinare con dati macchina)
   velocitaVite?: number;
