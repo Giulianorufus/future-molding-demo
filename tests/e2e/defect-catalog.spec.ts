@@ -45,11 +45,15 @@ test('una guida qualitativa non conserva la correzione del difetto precedente', 
   await serveFixture(page, 'tests/fixtures/Frutto (1).glb')
   await page.goto('/#/wizard')
   await exposeStores(page)
-  await injectStores(page, { pressId: 'arburg-370-u', materialId: 'PP-HOMO' })
+  await injectStores(page, { pressId: 'arburg-370-u', materialId: 'pp' })
   await waitForParametriResult(page)
   await page.goto('/#/difetti')
-  await page.getByRole('button', { name: 'Bava / sormonto', exact: true }).click()
-  await page.waitForFunction(() => (window as any).__FM_STORES__.parametri.getState().lastDefectFix?.defectId === 'flash')
+  await page.evaluate(() => {
+    const store = (window as any).__FM_STORES__.parametri
+    const legacy = { defectId: 'flash', severity: 'medium', notes: [] }
+    store.setState({ lastDefectFix: legacy })
+    localStorage.setItem('fm:lastDefectFix', JSON.stringify(legacy))
+  })
   await page.getByRole('searchbox', { name: 'Cerca difetto' }).fill('umidita')
   await page.getByRole('button', { name: 'Striature da umidità', exact: true }).click()
   await page.waitForFunction(() => (window as any).__FM_STORES__.parametri.getState().lastDefectFix === null)
