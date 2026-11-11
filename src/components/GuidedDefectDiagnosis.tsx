@@ -3,6 +3,7 @@ import type { CalculationResult } from '@/core/calcEngine'
 import { inferKnowledgeRecommendations } from '@/engine/knowledge/knowledgeEngine'
 import { getDefectGuide, type DiagnosticAnswers } from '@/engine/knowledge/guidedDiagnosis'
 import { getDefectTrialKind, getNextDefectTrialCheck, proposeDefectRecipeTrial } from '@/engine/knowledge/defectRecipeTrial'
+import DefectOutcomeLog from './DefectOutcomeLog'
 import { usePressStore } from '@/stores/pressStore'
 import type { KnowledgeResult } from '@/engine/knowledge/types'
 
@@ -69,7 +70,7 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
 
   if (!guide) return <section aria-label="Diagnosi guidata" className="rounded-xl border p-4">Diagnosi guidata non disponibile per questo difetto.</section>
   const report = evaluation?.guidedDiagnosis
-  return <section aria-label="Diagnosi guidata" className="space-y-5 rounded-xl border border-blue-200 bg-white p-4 text-blue-950">
+  return <><section aria-label="Diagnosi guidata" className="space-y-5 rounded-xl border border-blue-200 bg-white p-4 text-blue-950">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 className="text-xl font-semibold">Diagnosi guidata · {guide.label}</h2>
@@ -146,4 +147,7 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
       <p className="mt-1">Domande e ordine delle verifiche sono regole qualitative di Future Molding. Le condizioni di prova dipendono dal grado materiale e dai limiti di pressa e stampo.</p>
     </details>
   </section>
+    <DefectOutcomeLog defectId={guide.id} pressId={pressId} materialId={materialId} result={result}
+      trial={trial ? { ...trial, parameter, unit } : null} />
+  </>
 }

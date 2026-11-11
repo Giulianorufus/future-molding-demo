@@ -8,7 +8,7 @@ const props = { defectId: 'burn-mark', severity: 'medium', result: null, volumeC
 test('questions work without CAD or recipe and unknown answers do not claim evidence', async () => {
   render(<GuidedDefectDiagnosis {...props} />)
   expect(screen.getByText(/Completa il Wizard/)).toBeVisible()
-  for (const input of screen.getAllByRole('combobox')) fireEvent.change(input, { target: { value: 'unknown' } })
+  for (const input of within(screen.getByRole('region', { name: 'Diagnosi guidata' })).getAllByRole('combobox')) fireEvent.change(input, { target: { value: 'unknown' } })
   expect(await screen.findByText('3 di 3 risposte · 0 osservazioni verificate')).toBeVisible()
   expect(screen.queryByText('Indizi presenti')).toBeNull()
 })

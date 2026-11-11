@@ -73,6 +73,14 @@ test('STEP reale, ricetta iniziale e prova correttiva da Difetti', async ({ page
   await diagnosis.getByLabel('Minimo validato (s)').fill('2.5');
   await diagnosis.getByLabel('Massimo validato (s)').fill('3.15');
   await expect(diagnosis.getByText('3 → 3.15 s', { exact: false })).toBeVisible();
+  const log = page.getByRole('region', { name: 'Registro delle prove' });
+  await log.getByRole('checkbox', { name: /Ho provato la modifica proposta/ }).check();
+  await log.getByLabel('Esito in pressa').selectOption('PARTIAL_SUCCESS');
+  await log.getByRole('button', { name: 'Salva esito' }).click();
+  await expect(log.getByText(/Migliorato.*Tempo di mantenimento 3 → 3,15 s/)).toBeVisible();
+  const savedTrial = await page.evaluate(() => JSON.parse(localStorage.getItem('fm:defect-outcomes') ?? '[]')[0]?.metadata?.appliedTrial);
+  expect(savedTrial).toMatchObject({ before: 3, after: 3.15, unit: 's' });
+
   await diagnosis.getByRole('combobox', { name: /il peso del pezzo aumenta ancora/ }).selectOption('no');
   await expect(diagnosis.getByText(/il peso risulta già stabile/)).toBeVisible();
   await diagnosis.getByRole('combobox', { name: /il peso del pezzo aumenta ancora/ }).selectOption('yes');
