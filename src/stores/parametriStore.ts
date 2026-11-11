@@ -5,7 +5,7 @@ import { calcolaParametri, type CalculationInput, type CalculationResult } from 
 import { logInput, logOutput } from '../core/log'
 import { getFingerprintPolicy, type FingerprintPolicyRec } from '../engine/policy/loadFingerprintPolicy'
 import { buildPackingProfile } from '../engine/profiles'
-import { useDrawingStore } from './drawingStore'
+import { getRecipeDrawingKey, useDrawingStore } from './drawingStore'
 import { usePressStore } from './pressStore'
 import { useMaterialStore } from './materialStore'
 import { useDefectsStore } from './defectsStore'
@@ -374,8 +374,10 @@ if (typeof window !== 'undefined') {
 
       const baseInput: CalculationInput = {
         volumeCm3: singlePartVolume,
+        drawingKey: getRecipeDrawingKey(d),
         shotVolumeCm3: singlePartVolume * cavityCount + runnerVolume,
-        // Unified engine owns cavity/runner scaling; pass single-part CAD area here.\n        projectedAreaCm2: singlePartArea > 0 ? singlePartArea : undefined,
+        // Unified engine owns cavity/runner scaling; pass single-part CAD area here.
+        projectedAreaCm2: singlePartArea > 0 ? singlePartArea : undefined,
         cavityCount,
         press: pressEntry
           ? {
@@ -399,7 +401,7 @@ if (typeof window !== 'undefined') {
 
       // Read defect selection and apply corrections (pure function)
       const defectsState: any = useDefectsStore.getState?.() ?? {}
-      const defectId = mapLegacyDefectId(defectsState.selectedDefectId)
+      const defectId = defectsState.guidedOnly ? null : mapLegacyDefectId(defectsState.selectedDefectId)
       const severity = mapLegacySeverity(defectsState.selectedSeverity)
 
       function applyDefectDeltaToInput(baseInput: any, delta: any) {

@@ -1,4 +1,5 @@
 // src/engine/recipeExport/exportRecipeCsv.ts
+import { readRecipeProcessValues } from "../recipeProcessValues";
 import type { RecipeSnapshot } from "./recipeTypes";
 
 function fmtNum(v: any): string {
@@ -29,10 +30,14 @@ export function exportRecipeCsv(snapshot: RecipeSnapshot): string {
     "shotVolumeCm3",
     "warnings",
     "assumptions",
+    "holdingPressureBar",
+    "holdingTimeSec",
+    "coolingTimeSec",
   ];
 
   const header = cols.join(";");
 
+  const process = readRecipeProcessValues(snapshot.output ?? {});
   const row = [
     snapshot.meta.projectName ?? "",
     snapshot.meta.timestampISO,
@@ -47,6 +52,9 @@ export function exportRecipeCsv(snapshot: RecipeSnapshot): string {
     snapshot.output?.shotVolumeCm3 ?? snapshot.input?.shotVolumeCm3 ?? "",
     (snapshot.warnings || []).join('|'),
     (snapshot.assumptions || []).join('|'),
+    process.holdingPressureBar ?? 'Da determinare',
+    process.holdingTimeSec ?? 'Da determinare',
+    process.coolingTimeSec ?? 'Da determinare',
   ];
 
   return header + "\n" + row.map(escapeCsvField).join(";") + "\n";

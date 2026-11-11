@@ -36,7 +36,35 @@ describe('recipe export', () => {
 
     const csv = exportRecipeCsv(snap);
     expect(csv.split('\n')[1].startsWith('"PC; ""320 C""";')).toBe(true);
-    expect(csv.endsWith(';"Pressione; da verificare|Seconda riga\nDettaglio";"Quota\rda confermare"\n')).toBe(true);
+    expect(csv).toContain(';"Pressione; da verificare|Seconda riga\nDettaglio";"Quota\rda confermare";');
+  });
+
+  test('exports old Wizard placeholders as missing process settings', () => {
+    const legacy = {
+      times: { injectionMs: 137, coolingMs: 1 },
+      unified: { packPressione: 0, packTempo: 0, coolingTime: 0, profiloPack: { step1: 0 } },
+    };
+    const snap = buildRecipeSnapshot({ output: legacy });
+    const { output } = JSON.parse(exportRecipeJson(snap));
+
+    expect(output).toMatchObject({
+      holdingPressureBar: null, holdingTimeSec: null, coolingTimeSec: null,
+      times: { injectionMs: 137, coolingMs: null },
+      unified: { packPressione: null, packTempo: null, coolingTime: null },
+    });
+    expect(output.unified).not.toHaveProperty('profiloPack');
+    expect(legacy.times.coolingMs).toBe(1);
+    expect(exportRecipeCsv(snap)).toContain(';Da determinare;Da determinare;Da determinare\n');
+  });
+
+  test('exports known process settings in bar and seconds', () => {
+    const snap = buildRecipeSnapshot({
+      output: { times: { coolingMs: 12500 }, unified: { packPressione: 650, packTempo: 3.2 } },
+    });
+    expect(JSON.parse(exportRecipeJson(snap)).output).toMatchObject({
+      holdingPressureBar: 650, holdingTimeSec: 3.2, coolingTimeSec: 12.5,
+    });
+    expect(exportRecipeCsv(snap)).toContain(';650;3.2;12.5\n');
   });
 
   test('pdf smoke: generates bytes starting with %PDF', async () => {

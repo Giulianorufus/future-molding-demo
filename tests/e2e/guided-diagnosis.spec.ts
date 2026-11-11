@@ -39,19 +39,21 @@ test('la scelta del difetto segue lo store; le risposte non modificano la ricett
   await injectStores(page, { pressId: 'arburg-370-u', materialId: 'PP-HOMO' })
   await waitForParametriResult(page)
   await page.goto('/#/difetti')
-  await page.getByRole('button', { name: 'Bava / sormonto', exact: true }).click()
-  // Wait for the existing defect-to-recipe recalculation before collecting a baseline.
-  await page.waitForFunction(() => {
-    const state = (window as any).__FM_STORES__.parametri.getState()
-    return state.lastDefectFix?.defectId === 'flash' && !state.loading
-  })
   const baseline = await page.evaluate(() => JSON.stringify((window as any).__FM_STORES__.parametri.getState().result))
+  await page.getByRole('button', { name: 'Bava / sormonto', exact: true }).click()
   const panel = page.getByRole('region', { name: 'Diagnosi guidata' })
   await panel.getByRole('combobox', { name: 'Quando compare la bava?' }).selectOption('hold')
   await expect(panel.getByRole('heading', { name: '1. Post-pressione eccessiva per lo stampo' })).toBeVisible()
+  await panel.getByRole('combobox', { name: 'Dove compare la bava?' }).selectOption('distributed')
+  await panel.getByRole('combobox', { name: 'Sono stati riscontrati danni o sporco sulle battute?' }).selectOption('no')
+  await panel.getByLabel('Pressione attuale (bar)').fill('600')
+  await panel.getByLabel('Minimo validato (bar)').fill('560')
+  await panel.getByLabel('Massimo validato (bar)').fill('650')
+  await expect(panel.getByText('600 → 570 bar', { exact: false })).toBeVisible()
   expect(await page.evaluate(() => JSON.stringify((window as any).__FM_STORES__.parametri.getState().result))).toBe(baseline)
   // A different CAD/model starts a fresh observation session.
   await page.evaluate(() => (window as any).__FM_STORES__.drawing.getState().setResult({ viewerUrl: null }))
   await expect(panel.getByText('0 di 3 risposte · 0 osservazioni verificate')).toBeVisible()
   await expect(panel.getByRole('combobox', { name: 'Quando compare la bava?' })).toHaveValue('')
+  await expect(panel.getByText('600 → 570 bar', { exact: false })).toHaveCount(0)
 })

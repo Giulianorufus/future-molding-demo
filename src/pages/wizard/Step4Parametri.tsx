@@ -3,8 +3,11 @@ import { useParametriStore } from '@/stores/parametriStore'
 import { useDrawingStore } from '@/stores/drawingStore'
 import FillSimulationViewer from '@/components/FillSimulationViewer'
 import { usePressStore } from '@/stores/pressStore'
+import { useMaterialStore } from '@/stores/materialStore'
 import { recommendPressForMold, evaluatePressMoldFit } from '@/engine/pressMoldFit'
 import OperatorRecipePanel from '@/components/OperatorRecipePanel'
+import FillingTrialPanel from './FillingTrialPanel'
+import { linearScrewSpeedToFlowCm3s } from '@/engine/units/injectionFlow'
 
 export default function Step4Parametri({ onBack }: { onBack?: () => void }) {
   const result = useParametriStore((s) => s.result)
@@ -12,8 +15,11 @@ export default function Step4Parametri({ onBack }: { onBack?: () => void }) {
   const data = result
   const viewerUrl = useDrawingStore((s) => s.viewerUrl)
   const pressCatalog = usePressStore((s) => s.catalog)
+  const pcSelected = useMaterialStore((s) => s.selectedMaterialId === 'pc')
   const selectedPressId = usePressStore((s) => s.selectedPressId)
   const selectedPress = selectedPressId ? pressCatalog[selectedPressId] : undefined
+  const confirmedSingleColdCavity = useDrawingStore((s) =>
+    s.cavityCountConfirmed && s.cavityCount === 1 && s.feedSystem === 'cold')
   const footprintXmm = useDrawingStore((s) => s.moldFootprintXmm)
   const footprintYmm = useDrawingStore((s) => s.moldFootprintYmm)
   const heightMm = useDrawingStore((s) => s.moldHeightMm)
@@ -37,6 +43,18 @@ export default function Step4Parametri({ onBack }: { onBack?: () => void }) {
               {idealPress && <div className="mt-2"><strong>Pressa ideale disponibile:</strong> {idealPress.pressName} ({(idealPress.nominalClampKn / 9.80665).toFixed(1)} t nominali).</div>}
           </div>
         )} />
+      )}
+
+      {!loading && data && selectedPress && confirmedSingleColdCavity && (
+        <FillingTrialPanel
+          pcSelected={pcSelected}
+          vpVolumeCm3={data.vpSwitchVolumeCm3}
+          maxPressureBar={selectedPress.dataStatus === 'complete' ? selectedPress.maxPressureBar : undefined}
+          maxFlowCm3s={selectedPress.dataStatus === 'complete'
+            ? selectedPress.maxInjectionFlowCm3s
+              ?? linearScrewSpeedToFlowCm3s(selectedPress.maxSpeedMmPerS, data.screwDiameterMm)
+            : undefined}
+        />
       )}
 
       {data && viewerUrl && <FillSimulationViewer viewerUrl={viewerUrl} durationMs={data.times?.injectionMs} />}

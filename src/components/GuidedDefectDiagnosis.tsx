@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { CalculationResult } from '@/core/calcEngine'
 import { inferKnowledgeRecommendations } from '@/engine/knowledge/knowledgeEngine'
 import { getDefectGuide, type DiagnosticAnswers } from '@/engine/knowledge/guidedDiagnosis'
+import { getDefectTrialKind, getNextDefectTrialCheck, proposeDefectRecipeTrial } from '@/engine/knowledge/defectRecipeTrial'
+import { usePressStore } from '@/stores/pressStore'
 import type { KnowledgeResult } from '@/engine/knowledge/types'
 
+const emptyWindow = { current: '', minimum: '', maximum: '' }
+
 type Props = {
+  gateHintKey?: string
   defectId: string
   severity: string
   result: CalculationResult | null
@@ -13,12 +18,29 @@ type Props = {
   materialId: string | null
 }
 
-export default function GuidedDefectDiagnosis({ defectId, severity, result, volumeCm3, pressId, materialId }: Props) {
+export default function GuidedDefectDiagnosis({ defectId, severity, result, volumeCm3, pressId, materialId, gateHintKey }: Props) {
   const guide = getDefectGuide(defectId)
   const [answers, setAnswers] = useState<DiagnosticAnswers>({})
+  const [confirmedHint, setConfirmedHint] = useState<string>()
+  useEffect(() => { setConfirmedHint(undefined) }, [gateHintKey])
+  const observations = useMemo(() => gateHintKey && confirmedHint === gateHintKey && !answers.location
+    ? { ...answers, location: 'gate' } : answers, [answers, gateHintKey, confirmedHint])
   const [evaluation, setEvaluation] = useState<KnowledgeResult | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [pressure, setPressure] = useState(emptyWindow)
+  const press = usePressStore(state => pressId ? state.catalog[pressId] : undefined)
+  const kind = guide ? getDefectTrialKind(guide.id, observations) : null
+  const nextCheck = guide && !kind ? getNextDefectTrialCheck(guide.id, observations) : null
+  const isTime = kind === 'time'
+  const unit = isTime ? 's' : 'bar'
+  const parameter = isTime ? 'Tempo di mantenimento' : 'Pressione di mantenimento'
+  const trial = result && pressId && materialId && kind && guide
+    ? proposeDefectRecipeTrial(guide.id, observations, {
+      current: Number(pressure.current), minimum: Number(pressure.minimum), maximum: Number(pressure.maximum),
+      pressMaximum: press?.dataStatus === 'complete' ? press.maxPressureBar : undefined,
+    })
+    : null
 
   useEffect(() => {
     let cancelled = false
@@ -34,7 +56,7 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
         } : undefined,
       },
       output: { calculatedAtISO: new Date().toISOString(), rawResult: result ? result as unknown as Record<string, unknown> : {} },
-      defectContext: { defectId, severity, observations: answers },
+      defectContext: { defectId, severity, observations },
     }, undefined, { persistLearning: false }).then(next => {
       if (!cancelled) setEvaluation(next)
     }).catch(() => {
@@ -43,7 +65,7 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
       if (!cancelled) setLoading(false)
     })
     return () => { cancelled = true }
-  }, [defectId, severity, answers, result, volumeCm3, pressId, materialId])
+  }, [defectId, severity, observations, result, volumeCm3, pressId, materialId])
 
   if (!guide) return <section aria-label="Diagnosi guidata" className="rounded-xl border p-4">Diagnosi guidata non disponibile per questo difetto.</section>
   const report = evaluation?.guidedDiagnosis
@@ -53,18 +75,47 @@ export default function GuidedDefectDiagnosis({ defectId, severity, result, volu
         <h2 className="text-xl font-semibold">Diagnosi guidata · {guide.label}</h2>
         <p className="mt-1 text-sm text-slate-600">Rispondi sui pezzi e sui dati osservati in pressa. Prova una modifica alla volta e confronta il risultato.</p>
       </div>
-      <button className="rounded-lg border border-blue-200 px-3 py-2 text-sm" onClick={() => setAnswers({})}>Ricomincia le domande</button>
+      <button className="rounded-lg border border-blue-200 px-3 py-2 text-sm" onClick={() => { setAnswers({}); setConfirmedHint(undefined); setPressure(emptyWindow) }}>Ricomincia le domande</button>
     </div>
     {!result && <p className="rounded-lg bg-blue-50 p-3 text-sm">Puoi iniziare dalle osservazioni. Completa il Wizard per affiancare i parametri calcolati alle verifiche.</p>}
+    {gateHintKey && !observations.location && <p className="rounded-lg bg-blue-50 p-3 text-sm">
+      Il punto segnato è vicino all’attacco indicato sul disegno.
+      <button type="button" className="ml-2 rounded border px-2 py-1" onClick={() => setConfirmedHint(gateHintKey)}>
+        Conferma vicino all’attacco
+      </button>
+    </p>}
     <div className="grid gap-3 md:grid-cols-3">
       {guide.questions.map((question, index) => <label key={question.id} className="flex min-w-0 flex-col gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
         <span className="font-medium">{index + 1}. {question.label}</span>
-        <select aria-label={question.label} className="mt-auto min-w-0 w-full rounded border border-slate-300 bg-white p-2 text-slate-900" value={answers[question.id] ?? ''} onChange={event => setAnswers(previous => ({ ...previous, [question.id]: event.target.value }))}>
+        <select aria-label={question.label} className="mt-auto min-w-0 w-full rounded border border-slate-300 bg-white p-2 text-slate-900" value={observations[question.id] ?? ''} onChange={event => {
+          const value = event.target.value
+          setPressure(emptyWindow)
+          if (question.id === 'location') setConfirmedHint(undefined)
+          setAnswers(previous => ({ ...previous, [question.id]: value }))
+        }}>
           <option value="">Scegli una risposta</option>
           {question.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </label>)}
     </div>
+    {nextCheck && <p className="rounded-lg bg-amber-50 p-3 text-sm">
+      <strong>{guide.id === 'flash' ? 'Pressione di mantenimento' : 'Tempo di mantenimento'} da determinare.</strong> {nextCheck}
+    </p>}
+    {kind && result && pressId && materialId && <section aria-label="Ricetta di prova" className="space-y-2 rounded border border-blue-200 p-3 text-sm">
+      <h3 className="font-semibold">Ricetta di prova · {parameter.toLowerCase()}</h3>
+      <p>Per il livello da provare, inserisci il valore usato sulla pressa e la finestra validata per questa pressa, stampo e materiale, nelle unità indicate.</p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {([['current', (isTime ? 'Tempo attuale' : 'Pressione attuale') + ' (' + unit + ')'], ['minimum', 'Minimo validato (' + unit + ')'], ['maximum', 'Massimo validato (' + unit + ')']] as const).map(([key, label]) =>
+          <label key={key}>{label}<input type="number" min="0" step="any" className="block w-full rounded border p-2"
+            value={pressure[key]} onChange={event => setPressure(previous => ({ ...previous, [key]: event.target.value }))} /></label>
+        )}
+      </div>
+      {trial ? <>
+        <p><strong>{parameter}</strong> {trial.before} → {trial.after} {unit}</p>
+        <p>{trial.reason}</p>
+        <p>Mantieni gli altri parametri della prova. Controlla bava, affossamenti e peso sul pezzo successivo.</p>
+      </> : <p>{isTime ? "Tempo di prova da determinare. Servono i tre valori e margine per prolungare il mantenimento." : "Pressione di prova da determinare. Servono i tre valori e margine per ridurre la pressione."}</p>}
+    </section>}
     {loading && <p role="status" className="text-sm">Aggiornamento delle verifiche…</p>}
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     {report && <>

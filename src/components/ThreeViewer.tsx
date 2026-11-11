@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+type SurfacePoint = { x: number; y: number; z: number };
 type DefectPin = { id: string; x?: number; y?: number; defect?: string; severity?: number }
 
 export type ThreeViewerProps = {
@@ -7,12 +8,15 @@ export type ThreeViewerProps = {
   pins?: DefectPin[];
   selectedPinId?: string | null;
   selectedPin?: { x: number; y: number; z: number } | null;
+  onPickPoint?: (point: SurfacePoint, localPoint: SurfacePoint, localSpan: number) => void;
   onSelectPin?: (id: string | null) => void;
 };
 
-export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selectedPinId, selectedPin, onSelectPin }) => {
+export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selectedPinId, selectedPin, onSelectPin, onPickPoint }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<string>("Idle");
+  const observation = useRef({ selectedPin, onPickPoint });
+  useEffect(() => { observation.current = { selectedPin, onPickPoint }; }, [selectedPin, onPickPoint]);
   const effectiveUrl = viewerUrl ?? null;
 
   useEffect(() => {
@@ -46,10 +50,51 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
 
     let stop = false;
     let controls: any = null;
+    let localSpan = 0;
+    let model: THREE.Object3D | null = null;
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(1.25, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xffb000 }),
+    );
+    marker.visible = false;
+    scene.add(marker);
+    const raycaster = new THREE.Raycaster();
+    let pointerStart: { x: number; y: number; id: number } | null = null;
+    const startPick = (event: PointerEvent) => {
+      if (event.isPrimary && event.button === 0) {
+        pointerStart = { x: event.clientX, y: event.clientY, id: event.pointerId };
+      }
+    };
+    const cancelPick = () => { pointerStart = null; };
+    const finishPick = (event: PointerEvent) => {
+      const start = pointerStart;
+      cancelPick();
+      const onPick = observation.current.onPickPoint;
+      if (!start || start.id !== event.pointerId || !model || !onPick ||
+          Math.hypot(start.x - event.clientX, start.y - event.clientY) > 5) return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const pointer = new THREE.Vector2(
+        (event.clientX - rect.left) * 2 / rect.width - 1,
+        1 - (event.clientY - rect.top) * 2 / rect.height,
+      );
+      raycaster.setFromCamera(pointer, camera);
+      const hit = raycaster.intersectObject(model, true).find(entry => entry.object instanceof THREE.Mesh);
+      if (hit) {
+        const local = model.worldToLocal(hit.point.clone());
+        onPick({ x: hit.point.x, y: hit.point.y, z: hit.point.z }, { x: local.x, y: local.y, z: local.z }, localSpan);
+      }
+    };
+    renderer.domElement.addEventListener('pointerdown', startPick);
+    renderer.domElement.addEventListener('pointerup', finishPick);
+    renderer.domElement.addEventListener('pointercancel', cancelPick);
     const animate = () => {
       if (stop) return;
       requestAnimationFrame(animate);
       controls?.update?.();
+      const point = observation.current.selectedPin;
+      marker.visible = Boolean(point);
+      if (point) marker.position.set(point.x, point.y, point.z);
       renderer.render(scene, camera);
     };
 
@@ -60,6 +105,7 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
           import("three/examples/jsm/loaders/GLTFLoader"),
           import("three/examples/jsm/controls/OrbitControls"),
         ]);
+        if (stop) return;
         const GLTFLoader = loaderMod.GLTFLoader ?? loaderMod.default;
         const OrbitControls = controlsMod.OrbitControls ?? controlsMod.default;
         controls = new OrbitControls(camera, renderer.domElement);
@@ -73,6 +119,7 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
         loader.load(
           effectiveUrl as string,
           (gltf: any) => {
+            if (stop) return;
             setStatus("Model loaded");
             const root = gltf?.scene;
             if (!root) {
@@ -105,10 +152,12 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
             root.position.sub(center);
 
             const maxDim = Math.max(size.x, size.y, size.z) || 1;
+            localSpan = maxDim / Math.abs(root.scale.x);
             const scale = 80 / maxDim;
             root.scale.setScalar(scale);
 
             scene.add(root);
+            model = root;
 
             // Fit the camera to the converted model and orbit around its center.
             const fittedSize = maxDim * scale;
@@ -121,20 +170,6 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
             controls?.target?.set(0, 0, 0);
             controls?.update?.();
 
-            // If a selectedPin is provided, add a simple marker sphere to the scene
-            if (selectedPin) {
-              try {
-                const marker = new THREE.Mesh(
-                  new THREE.SphereGeometry(2, 16, 16),
-                  new THREE.MeshBasicMaterial({ color: 0xffcc00 })
-                );
-                marker.position.set(selectedPin.x, selectedPin.y, selectedPin.z);
-                scene.add(marker);
-              } catch (e) {
-                // defensive: don't break rendering on marker issues
-                console.error('ThreeViewer: marker error', e);
-              }
-            }
             animate();
             setStatus("Ready");
           },
@@ -157,12 +192,17 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ viewerUrl, pins, selec
 
     return () => {
       stop = true;
+      renderer.domElement.removeEventListener('pointerdown', startPick);
+      renderer.domElement.removeEventListener('pointerup', finishPick);
+      renderer.domElement.removeEventListener('pointercancel', cancelPick);
+      marker.geometry.dispose();
+      marker.material.dispose();
       controls?.dispose?.();
       renderer.dispose();
       renderer.forceContextLoss?.();
       containerRef.current && (containerRef.current.innerHTML = "");
     };
-  }, [effectiveUrl, selectedPin]);
+  }, [effectiveUrl]);
 
   return (
     <div style={{ position: "relative", width: "100%", height: "320px", borderRadius: 8, overflow: "hidden" }}>

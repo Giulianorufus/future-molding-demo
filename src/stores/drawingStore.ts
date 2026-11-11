@@ -41,6 +41,14 @@ export type DrawingState = {
   reset: () => void
 }
 
+export function getRecipeDrawingKey(drawing: DrawingState): string {
+  return JSON.stringify([
+    drawing.viewerUrl, drawing.conversionId, drawing.volumeCm3, drawing.surfaceCm2,
+    drawing.cavityCount, drawing.cavityCountConfirmed, drawing.feedSystem,
+    drawing.runnerVolumeCm3, drawing.runnerProjectedAreaCm2,
+  ])
+}
+
 export const useDrawingStore = create<DrawingState>((set) => ({
   glbUrl: null,
   viewerUrl: null,
